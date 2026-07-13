@@ -12,6 +12,15 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+/.local
+/.demo-runtime
+/graphify-out
+/.screenshots
+/.codex-live-qa/screenshots
+/.codex-loop/screenshots
+/.codex-loop/*.png
 
 # next.js
 /.next/

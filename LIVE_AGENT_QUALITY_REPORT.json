@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-07-09T00:20:57.623Z",
+  "model": "google/gemini-2.5-flash-lite",
+  "provider": "openrouter",
+  "agentMode": "live",
+  "conversations": 25,
+  "userMessages": 115,
+  "productsCovered": [
+    "atelier-wool-coat",
+    "noir-cashmere-crew",
+    "high-rise-straight-denim",
+    "poplin-oxford-shirt",
+    "everyday-leather-tote",
+    "pleated-linen-trouser",
+    "silk-square-scarf",
+    "ribbed-merino-tank"
+  ],
+  "languagesCovered": [
+    "en",
+    "ar"
+  ],
+  "averageScore": 9.51,
+  "medianScore": 10,
+  "hardFailures": [],
+  "p0": 0,
+  "p1": 0,
+  "p2": 0,
+  "dashboard": {
+    "checked": true,
+    "conversationsVisible": 8,
+    "detailVisible": 8,
+    "insightsVisible": true,
+    "errors": []
+  },
+  "batchClean": true,
+  "ready": true,
+  "totalLiveConversations": 236,
+  "totalLiveUserMessages": 1084
+}

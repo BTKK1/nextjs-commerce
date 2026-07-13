@@ -141,13 +141,13 @@ npm run start
 Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 Start the development server:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 Access the store at: [http://localhost:3000](http://localhost:3000)
 
@@ -155,12 +155,121 @@ Access the store at: [http://localhost:3000](http://localhost:3000)
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Start the Next.js development server |
-| `npm run build` | Create an optimized production build |
-| `npm run start` | Run the production server |
-| `npm run lint` | Lint the codebase with ESLint |
-| `npm run lint:fix` | Lint and auto-fix issues |
-| `npm run typecheck` | Type-check the project with `tsc` |
+| `pnpm run dev` | Start the Next.js development server |
+| `pnpm run build` | Create an optimized production build |
+| `pnpm run start` | Run the production server |
+| `pnpm run lint` | Lint the codebase with ESLint |
+| `pnpm run lint:fix` | Lint and auto-fix issues |
+| `pnpm run typecheck` | Generate Next route types and type-check the project with `tsc` |
+
+## Saleh AI Sales Agent Demo
+
+This fork uses Bagisto Next.js Commerce as the storefront shell for the Saleh Stores AI Sales Agent demo.
+
+Demo behavior:
+
+- `/` renders the Maison Vert fashion storefront using the referenced product catalog and images.
+- `/product/[slug]` renders a responsive demo product page with color, size, size guide, local bag, and AI assistant controls.
+- `/products/[slug]` remains as a compatibility alias for the same demo product pages.
+- `/cart` and `/checkout` provide local browser-only bag and checkout flows for the demo catalog.
+- `/dashboard` and nested dashboard routes show KPIs, conversations, insights, product improvements, and settings.
+- `/api/agent/chat` and `/api/events` power the product-page AI widget and analytics logging.
+- Salla and Zid are intentionally not connected in this phase. The code keeps future provider stubs only.
+
+Local demo setup:
+
+```bash
+pnpm install
+pnpm run generate:demo-assets
+pnpm run seed:demo
+pnpm run dev
+```
+
+Verification:
+
+```bash
+pnpm run handoff:check
+```
+
+The handoff check is the local client handoff acceptance bar. It runs the tracked secret scan, asset generation, seed, Prisma schema validation, lint, Next route type generation, typecheck, unit tests, integration tests, product-page E2E, agent E2E, dashboard E2E, deterministic agent-quality matrix, screenshot audit, product-page audit, dashboard audit, and production build.
+
+Focused checks:
+
+```bash
+pnpm run secrets:check
+pnpm run backend:check
+pnpm run lint
+pnpm run typecheck
+pnpm run test:unit
+pnpm run test:integration
+pnpm run test:agent
+pnpm run test:agent:quality
+pnpm run test:e2e:product-pages
+pnpm run test:e2e:agent
+pnpm run test:e2e:dashboard
+pnpm run screenshots:products
+pnpm run audit:product-pages
+pnpm run audit:dashboard
+pnpm run build
+pnpm run test:e2e
+```
+
+The product-page agent is live-LLM only. Every valid shopper question is sent through the configured provider route with grounded seller knowledge and the trusted server-side conversation transcript. There is no canned or regex-based answer mode. Tests stay deterministic by mocking the external provider at the test boundary, not by shipping a second response engine.
+
+```bash
+AGENT_MODE=live OPENROUTER_API_KEY=... pnpm run handoff:check
+AGENT_MODE=live OPENROUTER_API_KEY=... pnpm run test:agent:live
+NEXT_PUBLIC_DEMO_MODE=true
+```
+
+Live LLM mode uses the same default model route as Ting CRM Sales Helper Agent role `sales_agent_chat` in `E:\Ting-CRM\lib\poc\ai\provider.ts`, centralized here in `src/lib/ai/model-config.ts`:
+
+- Primary: OpenRouter `google/gemini-2.5-flash-lite`
+- Fallback: OpenRouter `qwen/qwen3-235b-a22b-2507`
+- Cross-provider fallback: DeepSeek direct `deepseek-chat` when `DEEPSEEK_API_KEY` is configured
+
+The model never gets platform write tools. Product catalog guardrails run first, and unsupported facts fall back instead of being invented.
+
+Supabase backend setup:
+
+```bash
+pnpm run backend:check
+pnpm run supabase:push
+```
+
+Required local/deployment variables are listed in `.env.example`. Keep `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, and `DIRECT_URL` server-only. Set `SUPABASE_AGENT_ENABLED=true` only in environments where server-side Supabase writes should be enabled. CI keeps it `false` and still runs the live agent through OpenRouter.
+
+`NEXTAUTH_SECRET` is required anywhere customer/account authentication routes are used. The merchant dashboard is a public showcase-only dashboard for this demo milestone and does not establish a customer session.
+
+Agent evaluation:
+
+```bash
+pnpm run test:agent
+pnpm run test:agent:quality
+pnpm run test:agent:live
+```
+
+The live quality suite scores English, Arabic, product knowledge, missing-data fallback, objection handling, prompt-injection refusal, logging, and dashboard signals through the real agent route. It requires `OPENROUTER_API_KEY` or `DEEPSEEK_API_KEY`.
+
+CI runs deterministic provider-boundary tests, static checks, a production build, and non-agent browser coverage without storing model credentials. The full handoff and live-agent quality jobs run only when a provider key is configured.
+
+Reports:
+
+- `CLIENT_HANDOFF_ACCEPTANCE.md`
+- `AGENT_E2E_LOOP.md`
+- `AGENT_QUALITY_REPORT.md`
+- `AGENT_QUALITY_REPORT_LIVE.md`
+- `HANDOFF_REPORT.md`
+- `RUNBOOK.md`
+
+Rollback and support notes:
+
+- Reset the local demo state with `pnpm run seed:demo`.
+- Keep `.env.local` untracked; `pnpm run secrets:check` scans tracked files only.
+- Disable Supabase writes by setting `SUPABASE_AGENT_ENABLED=false`.
+- Demo Catalog is connected for the showcase build behind the seller knowledge provider; Salla and Zid remain future adapters and are shown as not connected in the dashboard provider-status page.
+- The dashboard stores anonymous visitor references and product conversation telemetry for demo insight aggregation; do not use it for payment data or unnecessary personal data.
+- Use `RUNBOOK.md` for preview recovery, OpenRouter/Supabase triage, rollback, and dashboard support checks.
 
 ---
 

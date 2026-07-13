@@ -1,10 +1,14 @@
 import OpenGraphImage from "@components/common/OpenGraphImage";
-import { getPage } from "@utils/bagisto";
 
-export default async function Image({ params }: { params: { page: string } }) {
-  const page = await getPage({ urlKey: params.page }) as { translation?: { metaTitle?: string; pageTitle?: string } }[];
-  const pageData = page && page.length > 0 ? page[0].translation : undefined;
-  const title = pageData?.metaTitle || pageData?.pageTitle;
+function titleFromSlug(slug: string) {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
-  return await OpenGraphImage({ title });
+export default async function Image({ params }: { params: Promise<{ page: string }> }) {
+  const { page } = await params;
+  return OpenGraphImage({ title: titleFromSlug(page) || "Maison Vert" });
 }

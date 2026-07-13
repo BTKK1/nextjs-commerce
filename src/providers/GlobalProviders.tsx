@@ -8,17 +8,16 @@ import { SessionSync } from "./SessionSync";
 
 export function GlobalProviders({ children }: { children: ReactNode }) {
   return (
-    <NextAuthProvider>
-      <ThemeProvider>
-        <ReduxProvider>
-          <SessionSync />
+    <ThemeProvider>
+      <ReduxProvider>
+        <NextAuthProvider sessionSync={<SessionSync />}>
           <ToastProvider>
             <ApolloWrapper>
               {children}
             </ApolloWrapper>
           </ToastProvider>
-        </ReduxProvider>
-      </ThemeProvider>
-    </NextAuthProvider>
+        </NextAuthProvider>
+      </ReduxProvider>
+    </ThemeProvider>
   );
 }

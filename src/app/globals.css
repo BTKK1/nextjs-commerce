@@ -89,6 +89,11 @@ body::-webkit-scrollbar-thumb {
   --color-octonary: #5a8eff;
   --color-novenary: #e3ecff;
   --color-denary: #314779;
+  --color-qahwa: #1f6f5f;
+  --color-saffron: #c98b2c;
+  --color-clay: #b65b3a;
+  --color-date: #8a5a32;
+  --shadow-soft: 0 18px 60px rgba(31, 41, 51, 0.12);
 
 
   /* Borders */
@@ -190,6 +195,22 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+.surface-grid {
+  background-image:
+    linear-gradient(rgba(31, 111, 95, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 111, 95, 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-ring:focus-visible {
+  outline-color: #1f6f5f;
 }
 
 @layer components {

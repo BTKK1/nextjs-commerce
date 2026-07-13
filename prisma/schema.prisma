@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model Merchant {
+  id        String    @id
+  name      String
+  arabicName String?  @map("arabic_name")
+  niche     String?
+  country   String?   @default("SA")
+  currency  String?   @default("SAR")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  products       Product[]
+  conversations  Conversation[]
+  insights       Insight[]
+  settings       DashboardSettings?
+  guardrails     Guardrail[]
+  auditLogs      AuditLog[]
+  integrations   PlatformIntegration[]
+  syncJobs       SyncJob[]
+  webhookEvents  WebhookEvent[]
+  configVersions ConfigVersion[]
+  analyticsEvents AnalyticsEvent[]
+
+  @@map("merchants")
+}
+
+model Product {
+  id                String    @id
+  merchantId        String?   @map("merchant_id")
+  slug              String    @unique
+  name              String
+  arabicName        String?   @map("arabic_name")
+  category          String?
+  priceSar          Decimal   @map("price_sar")
+  compareAtPriceSar Decimal?  @map("compare_at_price_sar")
+  availability      String?
+  inventory         Int?
+  catalogPayload    Json      @default("{}") @map("catalog_payload")
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  merchant        Merchant?        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  conversations   Conversation[]
+  insights        Insight[]
+  analyticsEvents AnalyticsEvent[]
+
+  @@map("products")
+}
+
+model Visitor {
+  id           String    @id
+  anonymousRef String    @unique @map("anonymous_ref")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversations Conversation[]
+
+  @@map("visitors")
+}
+
+model Conversation {
+  id                String    @id
+  merchantId        String?   @map("merchant_id")
+  productId         String?   @map("product_id")
+  visitorId         String?   @map("visitor_id")
+  visitorRef        String    @map("visitor_ref")
+  status            String    @default("active")
+  fallbackReason    String?   @map("fallback_reason")
+  detectedObjection String?   @map("detected_objection")
+  questionCategory  String?   @map("question_category")
+  qualityRating     Int?      @map("quality_rating")
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  visitor  Visitor?  @relation(fields: [visitorId], references: [id], onDelete: SetNull)
+  messages Message[]
+  insights Insight[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String    @id
+  conversationId String?   @map("conversation_id")
+  role           String
+  content        String
+  fallbackReason String?   @map("fallback_reason")
+  metadata       Json      @default("{}")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation  Conversation?   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  insightSources InsightSource[]
+
+  @@map("messages")
+}
+
+model Insight {
+  id             String    @id
+  merchantId     String?   @map("merchant_id")
+  productId      String?   @map("product_id")
+  conversationId String?   @map("conversation_id")
+  type           String
+  title          String
+  description    String
+  severity       String    @default("medium")
+  metadata       Json      @default("{}")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  merchant      Merchant?      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  product       Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  conversation  Conversation?  @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  insightSources InsightSource[]
+
+  @@map("insights")
+}
+
+model InsightSource {
+  id        BigInt  @id @default(autoincrement())
+  insightId String? @map("insight_id")
+  messageId String? @map("message_id")
+
+  insight Insight? @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("insight_sources")
+}
+
+model DashboardSettings {
+  merchantId    String @id @map("merchant_id")
+  tone          String @default("neutral_saudi")
+  demoMode      Boolean @default(true) @map("demo_mode")
+  retentionDays Int @default(30) @map("retention_days")
+  refreshLabel  String? @map("refresh_label")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("dashboard_settings")
+}
+
+model Guardrail {
+  id          String @id
+  merchantId  String? @map("merchant_id")
+  name        String
+  enabled     Boolean @default(true)
+  description String?
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("guardrails")
+}
+
+model AuditLog {
+  id         String    @id
+  merchantId String?   @map("merchant_id")
+  actor      String
+  action     String
+  metadata   Json      @default("{}")
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+model PlatformIntegration {
+  id          String    @id
+  merchantId  String?   @map("merchant_id")
+  provider    String
+  status      String
+  description String?
+  connectedAt DateTime? @map("connected_at") @db.Timestamptz(6)
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("platform_integrations")
+}
+
+model SyncJob {
+  id         String    @id
+  merchantId String?   @map("merchant_id")
+  provider   String
+  status     String
+  note       String?
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("sync_jobs")
+}
+
+model WebhookEvent {
+  id         String    @id
+  merchantId String?   @map("merchant_id")
+  provider   String
+  status     String
+  payload    Json      @default("{}")
+  note       String?
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_events")
+}
+
+model ConfigVersion {
+  id            String    @id
+  merchantId    String?   @map("merchant_id")
+  model         String
+  mode          String
+  promptVersion String    @map("prompt_version")
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("config_versions")
+}
+
+model AnalyticsEvent {
+  id               String    @id
+  merchantId       String?   @map("merchant_id")
+  productId        String?   @map("product_id")
+  productSlug      String    @map("product_slug")
+  visitorRef       String    @map("visitor_ref")
+  type             String
+  storefrontLocale String?   @map("storefront_locale")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("analytics_events")
+}
+
+model AgentAction {
+  id               BigInt    @id @default(autoincrement())
+  agent            String
+  action           String
+  actorKind        String    @default("ai") @map("actor_kind")
+  entityKind       String?   @map("entity_kind")
+  entityId         String?   @map("entity_id")
+  provider         String?
+  model            String?
+  promptVersion    String?   @map("prompt_version")
+  providerRoute    String?   @map("provider_route")
+  promptTokens     Int?      @map("prompt_tokens")
+  completionTokens Int?      @map("completion_tokens")
+  totalTokens      Int?      @map("total_tokens")
+  estimatedCost    Decimal?  @map("estimated_cost")
+  latencyMs        Int?      @map("latency_ms")
+  inputSnapshot    Json?     @map("input_snapshot")
+  output           Json?
+  reasoning        String?
+  dataPolicy       Json?     @map("data_policy")
+  status           String    @default("ok")
+  errorCode        String?   @map("error_code")
+  errorMessage     String?   @map("error_message")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("agent_actions")
+}
+
+model AgentEvaluation {
+  id        BigInt    @id @default(autoincrement())
+  suite     String
+  caseId    String    @map("case_id")
+  productSlug String  @map("product_slug")
+  language  String
+  score     Int
+  passed    Boolean
+  notes     String?
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("agent_evaluations")
+}

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Majlis Oud Incense Starter Kit</title>
+  <desc id="desc">Generated product illustration for Majlis Oud Incense Starter Kit</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff1f2"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <pattern id="pattern" width="86" height="86" patternUnits="userSpaceOnUse">
+      <path d="M43 8l35 35-35 35L8 43z" fill="none" stroke="#c98b2c" stroke-width="2" opacity=".18"/>
+      <circle cx="43" cy="43" r="6" fill="#c98b2c" opacity=".12"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#1f2933" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="1200" fill="url(#bg)"/>
+  <rect x="88" y="88" width="1024" height="1024" rx="60" fill="url(#pattern)"/>
+  <circle cx="966" cy="234" r="95" fill="#7f1d1d" opacity=".14"/>
+  <circle cx="239" cy="942" r="128" fill="#c98b2c" opacity=".12"/>
+  <g filter="url(#shadow)">
+      <rect x="385" y="510" width="330" height="168" rx="28" fill="#c98b2c"/>
+      <path d="M421 509c34-90 92-135 174-135 68 0 121 28 159 84" fill="none" stroke="#1f2933" stroke-width="28" stroke-linecap="round"/>
+      <path d="M486 455c54-69 125-74 196-18" fill="none" stroke="#7f1d1d" stroke-width="18" stroke-linecap="round"/>
+      <path d="M523 365c-38-58-18-114 36-157 39 64 29 119-36 157Z" fill="#1f2933"/>
+      <path d="M644 336c35-38 36-83 5-134-48 38-55 87-5 134Z" fill="#7f1d1d"/>
+    </g>
+  <text x="600" y="970" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#1f2933">Majlis Oud Incense Starter Kit</text>
+  <text x="600" y="1026" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#4b5563">Home Fragrance · SAR 149</text>
+</svg>

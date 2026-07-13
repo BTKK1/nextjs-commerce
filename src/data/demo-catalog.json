@@ -1,0 +1,404 @@
+{
+  "merchant": {
+    "id": "merchant-maison-vert",
+    "name": "Maison Vert",
+    "arabicName": "Maison Vert",
+    "industry": "Considered clothing made in small runs from natural fibers",
+    "city": "Antwerp",
+    "demoMode": true
+  },
+  "products": [
+    {
+      "id": "prod-atelier-wool-coat",
+      "slug": "atelier-wool-coat",
+      "name": "Atelier Wool Coat",
+      "arabicName": "Atelier Wool Coat",
+      "category": "Outerwear",
+      "tagline": "An unhurried silhouette in double-faced wool.",
+      "shortDescription": "A relaxed double-faced wool coat with a soft shoulder, clean drape, and quiet tailoring.",
+      "longDescription": "Cut from a heavyweight Italian wool blend, the Atelier coat drapes with quiet confidence. A relaxed shoulder and single-breasted front give it a softness rarely found in tailored outerwear.",
+      "priceSar": 489,
+      "compareAtPriceSar": null,
+      "currency": "USD",
+      "availability": "In stock",
+      "inventory": 14,
+      "variants": [
+        { "name": "Size", "values": ["XS", "S", "M", "L", "XL"], "defaultValue": "XS" },
+        { "name": "Color", "values": ["Cream", "Camel", "Charcoal"], "defaultValue": "Cream" }
+      ],
+      "sizes": ["XS", "S", "M", "L", "XL"],
+      "colors": ["Cream", "Camel", "Charcoal"],
+      "material": "70% Wool, 30% Cashmere",
+      "sizeGuide": [
+        { "label": "XS", "value": "Chest 32-34 in, relaxed shoulder" },
+        { "label": "S", "value": "Chest 35-37 in, relaxed shoulder" },
+        { "label": "M", "value": "Chest 38-40 in, relaxed shoulder" },
+        { "label": "L", "value": "Chest 41-43 in, relaxed shoulder" },
+        { "label": "XL", "value": "Chest 44-46 in, relaxed shoulder" }
+      ],
+      "keyFeatures": ["Double-faced wool and cashmere blend", "Notched lapel, single-breasted", "Welt hip pockets", "Fully lined in cupro", "Woven in Biella, Italy"],
+      "specs": [
+        { "label": "Material", "value": "70% Wool, 30% Cashmere" },
+        { "label": "Fit", "value": "Relaxed shoulder with an easy tailored drape" },
+        { "label": "Origin", "value": "Woven in Biella, Italy" }
+      ],
+      "careShippingNotes": "Dry clean only. Complimentary shipping over $150 with free returns within 30 days.",
+      "faqs": [
+        { "question": "How does the coat fit?", "answer": "It is intentionally relaxed through the shoulder and body, so choose your usual size for the intended drape." },
+        { "question": "Is it warm enough for winter?", "answer": "The heavyweight wool and cashmere blend is built for cold weather layering." }
+      ],
+      "objections": [
+        { "category": "price_concern", "objection": "The coat is expensive.", "response": "The price reflects the double-faced wool and cashmere blend, cupro lining, and Italian weaving." },
+        { "category": "suitability_concern", "objection": "I am not sure which color is safest.", "response": "Camel is the most versatile outerwear shade; Cream is softer, and Charcoal is the easiest for daily wear." }
+      ],
+      "weakDescriptionSignals": ["Exact garment measurements by size are summarized but not listed as full technical specs."],
+      "imagePath": "/store-products/atelier-wool-coat.jpg",
+      "tags": ["coat", "wool", "cashmere", "outerwear"],
+      "persona": "A shopper looking for refined cold-weather outerwear with quiet tailoring.",
+      "upsellProductSlugs": ["noir-cashmere-crew", "pleated-linen-trouser"],
+      "crossSellProductSlugs": ["everyday-leather-tote", "poplin-oxford-shirt"]
+    },
+    {
+      "id": "prod-noir-cashmere-crew",
+      "slug": "noir-cashmere-crew",
+      "name": "Noir Cashmere Crew",
+      "arabicName": "Noir Cashmere Crew",
+      "category": "Knitwear",
+      "tagline": "The everyday sweater, reimagined.",
+      "shortDescription": "A grade-A cashmere crewneck with a slightly dropped shoulder and easy everyday shape.",
+      "longDescription": "Spun from grade-A Mongolian cashmere, this crewneck holds its shape wash after wash. A slightly dropped shoulder gives it the ease of a favorite sweatshirt.",
+      "priceSar": 245,
+      "compareAtPriceSar": null,
+      "currency": "USD",
+      "availability": "In stock",
+      "inventory": 22,
+      "variants": [
+        { "name": "Size", "values": ["XS", "S", "M", "L", "XL"], "defaultValue": "XS" },
+        { "name": "Color", "values": ["Noir", "Oat", "Storm"], "defaultValue": "Noir" }
+      ],
+      "sizes": ["XS", "S", "M", "L", "XL"],
+      "colors": ["Noir", "Oat", "Storm"],
+      "material": "100% Cashmere",
+      "sizeGuide": [
+        { "label": "XS", "value": "Chest 32-34 in, slightly relaxed" },
+        { "label": "S", "value": "Chest 35-37 in, slightly relaxed" },
+        { "label": "M", "value": "Chest 38-40 in, slightly relaxed" },
+        { "label": "L", "value": "Chest 41-43 in, slightly relaxed" },
+        { "label": "XL", "value": "Chest 44-46 in, slightly relaxed" }
+      ],
+      "keyFeatures": ["100% Mongolian cashmere, 12-gauge", "Ribbed crew, cuffs, and hem", "Relaxed fit, dropped shoulder", "Machine washable on cold"],
+      "specs": [
+        { "label": "Material", "value": "100% Cashmere" },
+        { "label": "Gauge", "value": "12-gauge knit" },
+        { "label": "Care", "value": "Machine washable on cold" }
+      ],
+      "careShippingNotes": "Machine wash cold and lay flat to dry. Complimentary shipping over $150 with free returns within 30 days.",
+      "faqs": [
+        { "question": "Is it itchy?", "answer": "No, it is spun from soft grade-A cashmere for a smooth hand feel." },
+        { "question": "Should I size up?", "answer": "Choose your usual size for an easy fit, or size up for a slouchier shape." }
+      ],
+      "objections": [
+        { "category": "maintenance_concern", "objection": "Cashmere sounds hard to care for.", "response": "This piece is machine washable on cold; lay it flat to dry to preserve shape." },
+        { "category": "quality_concern", "objection": "I worry it will lose shape.", "response": "The 12-gauge knit and ribbed trims are chosen to help the sweater hold its structure." }
+      ],
+      "weakDescriptionSignals": ["Pilling expectations are not quantified in demo data."],
+      "imagePath": "/store-products/noir-cashmere-crew.jpg",
+      "tags": ["cashmere", "knitwear", "sweater", "noir"],
+      "persona": "A shopper looking for a refined sweater that can be worn often.",
+      "upsellProductSlugs": ["atelier-wool-coat", "high-rise-straight-denim"],
+      "crossSellProductSlugs": ["pleated-linen-trouser"]
+    },
+    {
+      "id": "prod-high-rise-denim",
+      "slug": "high-rise-straight-denim",
+      "name": "High-Rise Straight Denim",
+      "arabicName": "High-Rise Straight Denim",
+      "category": "Denim",
+      "tagline": "Rigid denim, softened by wear.",
+      "shortDescription": "A high-waisted straight leg in Japanese selvedge denim, cut long for hemming or stacking.",
+      "longDescription": "A high-waisted straight leg in 13-oz Japanese selvedge. Cut long so you can hem to your own leg, or leave for a stack at the ankle.",
+      "priceSar": 168,
+      "compareAtPriceSar": null,
+      "currency": "USD",
+      "availability": "In stock",
+      "inventory": 28,
+      "variants": [
+        { "name": "Size", "values": ["24", "26", "28", "30", "32"], "defaultValue": "24" },
+        { "name": "Color", "values": ["Indigo", "Washed", "Ecru"], "defaultValue": "Indigo" }
+      ],
+      "sizes": ["24", "26", "28", "30", "32"],
+      "colors": ["Indigo", "Washed", "Ecru"],
+      "material": "100% Cotton",
+      "sizeGuide": [
+        { "label": "24", "value": "Waist 24 in, high rise" },
+        { "label": "26", "value": "Waist 26 in, high rise" },
+        { "label": "28", "value": "Waist 28 in, high rise" },
+        { "label": "30", "value": "Waist 30 in, high rise" },
+        { "label": "32", "value": "Waist 32 in, high rise" }
+      ],
+      "keyFeatures": ["13-oz Japanese selvedge denim", "High-rise, straight leg", "Zip fly, five-pocket construction", "Copper rivets, chain-stitch hem"],
+      "specs": [
+        { "label": "Material", "value": "100% Cotton" },
+        { "label": "Fabric", "value": "13-oz Japanese selvedge denim" },
+        { "label": "Fit", "value": "High-rise straight leg" }
+      ],
+      "careShippingNotes": "Wash cold inside out and expect the denim to soften with wear. Complimentary shipping over $150 with free returns within 30 days.",
+      "faqs": [
+        { "question": "Will the denim stretch?", "answer": "It is rigid cotton denim, so it softens with wear but does not behave like stretch denim." },
+        { "question": "Why is it cut long?", "answer": "It is cut long so you can hem it to your preferred length or leave a stack at the ankle." }
+      ],
+      "objections": [
+        { "category": "variant_confusion", "objection": "I do not know which waist size to pick.", "response": "Choose your true waist for a clean high-rise fit; size up if you prefer more ease." },
+        { "category": "maintenance_concern", "objection": "Rigid denim feels hard to maintain.", "response": "Wash cold inside out and let the denim soften naturally with wear." }
+      ],
+      "weakDescriptionSignals": ["Exact inseam options are not listed in demo data."],
+      "imagePath": "/store-products/high-rise-straight-denim.jpg",
+      "tags": ["denim", "selvedge", "straight", "cotton"],
+      "persona": "A shopper who wants long-lasting denim with a precise high-rise fit.",
+      "upsellProductSlugs": ["poplin-oxford-shirt", "noir-cashmere-crew"],
+      "crossSellProductSlugs": ["atelier-wool-coat"]
+    },
+    {
+      "id": "prod-poplin-oxford-shirt",
+      "slug": "poplin-oxford-shirt",
+      "name": "Poplin Oxford Shirt",
+      "arabicName": "Poplin Oxford Shirt",
+      "category": "Shirts",
+      "tagline": "The white shirt, without the fuss.",
+      "shortDescription": "A crisp Portuguese cotton shirt with mother-of-pearl buttons and a softly rolled collar.",
+      "longDescription": "A refined take on the button-down: crisp Portuguese cotton poplin, mother-of-pearl buttons, a softly rolled collar. It only gets better with age.",
+      "priceSar": 118,
+      "compareAtPriceSar": null,
+      "currency": "USD",
+      "availability": "In stock",
+      "inventory": 35,
+      "variants": [
+        { "name": "Size", "values": ["XS", "S", "M", "L", "XL"], "defaultValue": "XS" },
+        { "name": "Color", "values": ["White", "Ecru", "Sky"], "defaultValue": "White" }
+      ],
+      "sizes": ["XS", "S", "M", "L", "XL"],
+      "colors": ["White", "Ecru", "Sky"],
+      "material": "100% Cotton",
+      "sizeGuide": [
+        { "label": "XS", "value": "Chest 32-34 in, regular fit" },
+        { "label": "S", "value": "Chest 35-37 in, regular fit" },
+        { "label": "M", "value": "Chest 38-40 in, regular fit" },
+        { "label": "L", "value": "Chest 41-43 in, regular fit" },
+        { "label": "XL", "value": "Chest 44-46 in, regular fit" }
+      ],
+      "keyFeatures": ["Portuguese cotton poplin, 120s two-ply", "Mother-of-pearl buttons", "Split yoke, single-needle stitching", "Curved hem"],
+      "specs": [
+        { "label": "Material", "value": "100% Cotton" },
+        { "label": "Fabric", "value": "Portuguese cotton poplin, 120s two-ply" },
+        { "label": "Finish", "value": "Mother-of-pearl buttons and curved hem" }
+      ],
+      "careShippingNotes": "Machine wash cold and hang dry for the crispest finish. Complimentary shipping over $150 with free returns within 30 days.",
+      "faqs": [
+        { "question": "Is the shirt see-through?", "answer": "The 120s two-ply poplin is crisp and refined while still intended for everyday wear." },
+        { "question": "Can it be tucked in?", "answer": "Yes, the curved hem works tucked or untucked." }
+      ],
+      "objections": [
+        { "category": "price_concern", "objection": "It costs more than a basic white shirt.", "response": "The Portuguese cotton, mother-of-pearl buttons, and single-needle stitching make it a more refined staple." },
+        { "category": "suitability_concern", "objection": "I am not sure how to style it.", "response": "It pairs cleanly with denim, trousers, or under the Atelier Wool Coat." }
+      ],
+      "weakDescriptionSignals": ["Opacity level is described generally but not measured."],
+      "imagePath": "/store-products/poplin-oxford-shirt.jpg",
+      "tags": ["shirt", "poplin", "cotton", "oxford"],
+      "persona": "A shopper looking for a crisp everyday shirt that still feels elevated.",
+      "upsellProductSlugs": ["high-rise-straight-denim", "atelier-wool-coat"],
+      "crossSellProductSlugs": ["pleated-linen-trouser"]
+    },
+    {
+      "id": "prod-everyday-leather-tote",
+      "slug": "everyday-leather-tote",
+      "name": "Everyday Leather Tote",
+      "arabicName": "Everyday Leather Tote",
+      "category": "Accessories",
+      "tagline": "Room for the day, in vegetable-tanned leather.",
+      "shortDescription": "A vegetable-tanned leather tote sized for a laptop, notebook, and daily carry.",
+      "longDescription": "Hand-cut from Tuscan vegetable-tanned leather that patinas with use. Sized to hold a 14-inch laptop, a notebook, and a bottle of water.",
+      "priceSar": 320,
+      "compareAtPriceSar": null,
+      "currency": "USD",
+      "availability": "In stock",
+      "inventory": 12,
+      "variants": [
+        { "name": "Size", "values": ["One size"], "defaultValue": "One size" },
+        { "name": "Color", "values": ["Cognac", "Black", "Sand"], "defaultValue": "Cognac" }
+      ],
+      "sizes": ["One size"],
+      "colors": ["Cognac", "Black", "Sand"],
+      "material": "Full-grain leather",
+      "sizeGuide": [
+        { "label": "One size", "value": "Fits up to a 14-inch laptop with room for daily essentials" }
+      ],
+      "keyFeatures": ["Vegetable-tanned Tuscan leather", "Suede-lined interior with two slip pockets", "Solid brass hardware", "Fits up to a 14-inch laptop"],
+      "specs": [
+        { "label": "Material", "value": "Full-grain vegetable-tanned leather" },
+        { "label": "Interior", "value": "Suede-lined with two slip pockets" },
+        { "label": "Hardware", "value": "Solid brass" }
+      ],
+      "careShippingNotes": "Wipe with a soft dry cloth and let the leather patina naturally. Complimentary shipping over $150 with free returns within 30 days.",
+      "faqs": [
+        { "question": "Will it fit a laptop?", "answer": "Yes, it fits up to a 14-inch laptop." },
+        { "question": "Will the leather change over time?", "answer": "Yes, vegetable-tanned leather develops a natural patina with use." }
+      ],
+      "objections": [
+        { "category": "maintenance_concern", "objection": "Leather feels hard to maintain.", "response": "Use a soft dry cloth and let the vegetable-tanned leather patina naturally." },
+        { "category": "quality_concern", "objection": "I need it to hold daily items.", "response": "It is sized for a 14-inch laptop, notebook, and water bottle, with two slip pockets inside." }
+      ],
+      "weakDescriptionSignals": ["Exact tote dimensions are not listed in demo data."],
+      "imagePath": "/store-products/everyday-leather-tote.jpg",
+      "tags": ["tote", "leather", "accessory", "bag"],
+      "persona": "A shopper looking for a polished daily carry bag.",
+      "upsellProductSlugs": ["atelier-wool-coat", "poplin-oxford-shirt"],
+      "crossSellProductSlugs": ["pleated-linen-trouser"]
+    },
+    {
+      "id": "prod-pleated-linen-trouser",
+      "slug": "pleated-linen-trouser",
+      "name": "Pleated Linen Trouser",
+      "arabicName": "Pleated Linen Trouser",
+      "category": "Trousers",
+      "tagline": "Warm-weather tailoring, softly draped.",
+      "shortDescription": "A mid-weight Irish linen trouser with forward pleats and a wide tapered leg.",
+      "longDescription": "Two forward pleats fall into a wide, tapered leg. Woven in Ireland from a mid-weight linen that breathes through summer and layers into autumn.",
+      "priceSar": 210,
+      "compareAtPriceSar": null,
+      "currency": "USD",
+      "availability": "In stock",
+      "inventory": 18,
+      "variants": [
+        { "name": "Size", "values": ["XS", "S", "M", "L", "XL"], "defaultValue": "XS" },
+        { "name": "Color", "values": ["Camel", "Ivory", "Olive"], "defaultValue": "Camel" }
+      ],
+      "sizes": ["XS", "S", "M", "L", "XL"],
+      "colors": ["Camel", "Ivory", "Olive"],
+      "material": "100% Linen",
+      "sizeGuide": [
+        { "label": "XS", "value": "Waist 24-26 in, wide tapered leg" },
+        { "label": "S", "value": "Waist 27-29 in, wide tapered leg" },
+        { "label": "M", "value": "Waist 30-32 in, wide tapered leg" },
+        { "label": "L", "value": "Waist 33-35 in, wide tapered leg" },
+        { "label": "XL", "value": "Waist 36-38 in, wide tapered leg" }
+      ],
+      "keyFeatures": ["Irish linen, mid-weight", "Double forward pleats", "Wide, tapered leg", "Side-adjuster tabs, no belt loops"],
+      "specs": [
+        { "label": "Material", "value": "100% Linen" },
+        { "label": "Fabric", "value": "Mid-weight Irish linen" },
+        { "label": "Fit", "value": "Wide tapered leg with side-adjuster tabs" }
+      ],
+      "careShippingNotes": "Machine wash cold or dry clean. Linen naturally softens and creases with wear. Complimentary shipping over $150 with free returns within 30 days.",
+      "faqs": [
+        { "question": "Does linen wrinkle?", "answer": "Yes, linen naturally creases; that soft texture is part of the fabric character." },
+        { "question": "Can I wear it outside summer?", "answer": "The mid-weight linen breathes through summer and layers into autumn." }
+      ],
+      "objections": [
+        { "category": "maintenance_concern", "objection": "I worry linen wrinkles too much.", "response": "The trouser is meant to have a softly draped linen texture; cold wash or dry clean to maintain it." },
+        { "category": "variant_confusion", "objection": "I am not sure about the waist fit.", "response": "Side-adjuster tabs add flexibility, so choose the size closest to your waist range." }
+      ],
+      "weakDescriptionSignals": ["Exact inseam length is not listed in demo data."],
+      "imagePath": "/store-products/pleated-linen-trouser.jpg",
+      "tags": ["linen", "trouser", "tailoring", "pleated"],
+      "persona": "A shopper looking for warm-weather tailoring that can layer into autumn.",
+      "upsellProductSlugs": ["poplin-oxford-shirt", "noir-cashmere-crew"],
+      "crossSellProductSlugs": ["everyday-leather-tote", "atelier-wool-coat"]
+    },
+    {
+      "id": "prod-silk-square-scarf",
+      "slug": "silk-square-scarf",
+      "name": "Silk Square Scarf",
+      "arabicName": "Silk Square Scarf",
+      "category": "Accessories",
+      "tagline": "A light silk square with quiet color.",
+      "shortDescription": "A hand-rolled silk twill scarf that adds color at the neck, hair, or tote handle.",
+      "longDescription": "Cut from Italian silk twill with a soft matte finish, the square scarf is sized for the neck, hair, or tote handle. The edges are hand-rolled for a clean drape.",
+      "priceSar": 96,
+      "compareAtPriceSar": null,
+      "currency": "USD",
+      "availability": "In stock",
+      "inventory": 26,
+      "variants": [
+        { "name": "Size", "values": ["One size"], "defaultValue": "One size" },
+        { "name": "Color", "values": ["Sage", "Ochre", "Ink"], "defaultValue": "Sage" }
+      ],
+      "sizes": ["One size"],
+      "colors": ["Sage", "Ochre", "Ink"],
+      "material": "100% Silk",
+      "sizeGuide": [
+        { "label": "One size", "value": "60 cm square, suited for neck, hair, or bag styling" }
+      ],
+      "keyFeatures": ["Italian silk twill", "Hand-rolled edges", "60 cm square", "Light matte finish"],
+      "specs": [
+        { "label": "Material", "value": "100% Silk" },
+        { "label": "Size", "value": "60 cm square" },
+        { "label": "Finish", "value": "Hand-rolled edges" }
+      ],
+      "careShippingNotes": "Dry clean or steam gently. Complimentary shipping over $150 with free returns within 30 days.",
+      "faqs": [
+        { "question": "How can I wear it?", "answer": "It can be tied at the neck, worn in the hair, or wrapped around a tote handle." },
+        { "question": "Is the silk shiny?", "answer": "It has a soft matte silk twill finish rather than a high-gloss shine." }
+      ],
+      "objections": [
+        { "category": "gift_concern", "objection": "I am not sure it is enough as a gift.", "response": "It is an easy gift because one size works for everyone and the colors are subtle." },
+        { "category": "quality_concern", "objection": "I worry it will feel flimsy.", "response": "The silk twill and hand-rolled edges give it structure without making it heavy." }
+      ],
+      "weakDescriptionSignals": ["Exact gift packaging details are not listed in demo data."],
+      "imagePath": "/store-products/silk-square-scarf.jpg",
+      "tags": ["scarf", "silk", "accessory", "gift"],
+      "persona": "A shopper looking for a small refined gift or styling accent.",
+      "upsellProductSlugs": ["everyday-leather-tote", "poplin-oxford-shirt"],
+      "crossSellProductSlugs": ["atelier-wool-coat", "noir-cashmere-crew"]
+    },
+    {
+      "id": "prod-ribbed-merino-tank",
+      "slug": "ribbed-merino-tank",
+      "name": "Ribbed Merino Tank",
+      "arabicName": "Ribbed Merino Tank",
+      "category": "Knitwear",
+      "tagline": "A fine-rib base layer with a polished edge.",
+      "shortDescription": "A lightweight merino rib tank made for layering under shirts, knits, and jackets.",
+      "longDescription": "Knitted from fine merino wool in a narrow rib, this tank works as a breathable base layer or a clean warm-weather top. The neckline is softly bound for a polished finish.",
+      "priceSar": 128,
+      "compareAtPriceSar": null,
+      "currency": "USD",
+      "availability": "In stock",
+      "inventory": 24,
+      "variants": [
+        { "name": "Size", "values": ["XS", "S", "M", "L", "XL"], "defaultValue": "XS" },
+        { "name": "Color", "values": ["Ivory", "Moss", "Black"], "defaultValue": "Ivory" }
+      ],
+      "sizes": ["XS", "S", "M", "L", "XL"],
+      "colors": ["Ivory", "Moss", "Black"],
+      "material": "100% Merino Wool",
+      "sizeGuide": [
+        { "label": "XS", "value": "Chest 32-34 in, close rib fit" },
+        { "label": "S", "value": "Chest 35-37 in, close rib fit" },
+        { "label": "M", "value": "Chest 38-40 in, close rib fit" },
+        { "label": "L", "value": "Chest 41-43 in, close rib fit" },
+        { "label": "XL", "value": "Chest 44-46 in, close rib fit" }
+      ],
+      "keyFeatures": ["Fine merino wool rib", "Bound neckline and armholes", "Breathable layering weight", "Close stretch fit"],
+      "specs": [
+        { "label": "Material", "value": "100% Merino Wool" },
+        { "label": "Knit", "value": "Fine rib" },
+        { "label": "Fit", "value": "Close stretch fit for layering" }
+      ],
+      "careShippingNotes": "Hand wash cold and dry flat. Complimentary shipping over $150 with free returns within 30 days.",
+      "faqs": [
+        { "question": "Is it only for layering?", "answer": "No, it works as a base layer or as a clean warm-weather top." },
+        { "question": "How close is the fit?", "answer": "It has a close rib fit that stretches comfortably for layering." }
+      ],
+      "objections": [
+        { "category": "variant_confusion", "objection": "I do not know whether to size up.", "response": "Choose your usual size for a close rib fit; size up if you want more ease." },
+        { "category": "maintenance_concern", "objection": "Merino sounds delicate.", "response": "Hand wash cold and dry flat to keep the rib structure neat." }
+      ],
+      "weakDescriptionSignals": ["Exact garment length by size is not listed in demo data."],
+      "imagePath": "/store-products/ribbed-merino-tank.jpg",
+      "tags": ["merino", "tank", "rib", "knitwear"],
+      "persona": "A shopper looking for a refined base layer that can stand alone.",
+      "upsellProductSlugs": ["poplin-oxford-shirt", "pleated-linen-trouser"],
+      "crossSellProductSlugs": ["silk-square-scarf", "atelier-wool-coat"]
+    }
+  ]
+}

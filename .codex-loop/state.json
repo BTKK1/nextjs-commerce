@@ -1,0 +1,13 @@
+{
+  "startedAt": "2026-07-08T16:15:05.5464365Z",
+  "maxHours": 10,
+  "iteration": 12,
+  "consecutiveZeroFindingLoops": 3,
+  "currentGoal": "Iteration 12: run screenshots, product pages, agent, dashboard, and full handoff gate until zero P0/P1/P2 findings.",
+  "lastFocusedCommand": "pnpm run test:e2e:dashboard",
+  "lastFullCommand": "pnpm run handoff:check",
+  "openFindings": [],
+  "fixedFindings": [],
+  "ready": true,
+  "updatedAt": "2026-07-08T18:21:04.486Z"
+}

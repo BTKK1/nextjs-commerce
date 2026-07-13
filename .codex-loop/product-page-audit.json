@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-07-13T09:35:55.167Z",
+  "baseURL": "http://127.0.0.1:3004",
+  "products": [
+    "atelier-wool-coat",
+    "noir-cashmere-crew",
+    "high-rise-straight-denim",
+    "poplin-oxford-shirt",
+    "everyday-leather-tote",
+    "pleated-linen-trouser",
+    "silk-square-scarf",
+    "ribbed-merino-tank"
+  ],
+  "findings": [],
+  "passed": true
+}

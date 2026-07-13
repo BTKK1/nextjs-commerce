@@ -21,7 +21,17 @@ const __srOnly: React.CSSProperties = {
   border: 0,
 };
 
-export const outfit = Outfit({
+const __storeLocaleScript = `
+try {
+  var path = window.location && window.location.pathname ? window.location.pathname : "/";
+  var locale = path === "/ar" || path.indexOf("/ar/") === 0 ? "ar" : "en";
+  document.documentElement.lang = locale;
+  document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+  if (window.localStorage) window.localStorage.setItem("maison-vert-locale", locale);
+} catch (_) {}
+`;
+
+const outfit = Outfit({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "600"],
   variable: "--font-outfit",
@@ -41,6 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: __storeLocaleScript }} />
       </head>
       <body className={clsx(
         "min-h-screen font-outfit text-foreground bg-background antialiased",

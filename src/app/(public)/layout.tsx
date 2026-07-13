@@ -1,19 +1,6 @@
-import { ReactNode } from "react";
-import Footer from "@/components/layout/footer";
-import Navbar from "@/components/layout/navbar";
+import type { ReactNode } from "react";
+import { LocalizedStoreShell } from "@/components/saleh-demo/LocalizedStoreShell";
 
-export default async function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  return (
-    <main>
-      <Navbar />
-      <div className="mx-auto min-h-[calc(100vh-580px)] w-full">
-        {children}
-      </div>
-      <Footer />
-    </main>
-  );
+export default function PublicLayout({ children }: { children: ReactNode }) {
+  return <LocalizedStoreShell>{children}</LocalizedStoreShell>;
 }

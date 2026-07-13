@@ -1,18 +1,25 @@
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Prose from "@components/theme/search/Prose";
-import { getPage } from "@utils/bagisto";
-import { getCmsPageMetadata } from "@utils/helper";
-import { PageData } from "@/types/theme/theme-customization";
+
+function titleFromSlug(slug: string) {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ page: string }>;
 }): Promise<Metadata> {
-  const { page: pageParams } = await params;
-  const pageDataArray: PageData[] = await getPage({ urlKey: pageParams });
-  return getCmsPageMetadata(pageDataArray?.[0]?.translation);
+  const { page } = await params;
+  const title = titleFromSlug(page) || "Store Page";
+
+  return {
+    title: `${title} | Maison Vert`,
+    description: "A local placeholder for Bagisto CMS content in the Maison Vert storefront.",
+  };
 }
 
 export default async function Page({
@@ -20,27 +27,19 @@ export default async function Page({
 }: {
   params: Promise<{ page: string }>;
 }) {
-  const { page: pageParams } = await params;
-  const pageDataArray: PageData[] = await getPage({ urlKey: pageParams });
-  if (!pageDataArray?.length) return notFound();
-  const pageData = pageDataArray?.[0]?.translation;
+  const { page } = await params;
+  const title = titleFromSlug(page) || "Store Page";
 
   return (
-    <div className="my-4 flex flex-col justify-between p-4">
-      <div className="flex flex-col gap-4 mx-auto">
-        <h1 className="text-2xl md:text-3xl font-bold">{pageData?.pageTitle}</h1>
-        <Prose className="mb-8" html={pageData?.htmlContent || ""} />
-      <p className="text-sm italic">
-        {`This document was last updated on ${new Intl.DateTimeFormat(
-          undefined,
-          {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          },
-        )?.format(new Date(pageDataArray?.[0]?.updatedAt || "---"))}.`}
-      </p>
+    <main className="mx-auto min-h-screen max-w-screen-md px-4 py-12 xss:px-7.5">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-stone-500">Bagisto CMS placeholder</p>
+      <h1 className="mt-2 text-3xl font-semibold text-ink">{title}</h1>
+      <div className="mt-6 rounded-md border border-stone-200 bg-white p-6 text-stone-700 shadow-sm">
+        <p>
+          This page is served locally for the Maison Vert demo. Connect a Bagisto backend to replace this
+          placeholder with live CMS content.
+        </p>
       </div>
-    </div>
+    </main>
   );
 }

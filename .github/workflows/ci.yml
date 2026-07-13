@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      AGENT_MODE: live
+      AGENT_QUALITY_MODE: live
+      NEXT_PUBLIC_DEMO_MODE: "true"
+      SUPABASE_AGENT_ENABLED: "false"
+      SALES_AGENT_MODEL: google/gemini-2.5-flash-lite
+      SALES_AGENT_FALLBACK_MODEL: qwen/qwen3-235b-a22b-2507
+      SALES_AGENT_FALLBACK2_MODEL: deepseek-chat
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Generate and seed demo data
+        run: pnpm run generate:demo-assets && pnpm run seed:demo
+
+      - name: Static and backend checks
+        run: pnpm run secrets:check && pnpm run backend:check && pnpm run lint && pnpm run typecheck
+
+      - name: Deterministic provider-boundary tests
+        run: pnpm run test:unit && pnpm exec vitest run tests/integration/agent-api.test.ts
+
+      - name: Production build
+        run: pnpm run build
+
+      - name: Non-agent browser coverage
+        run: pnpm run test:e2e:product-pages && pnpm run test:e2e:dashboard
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+
+      - name: Upload Playwright traces and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          if-no-files-found: ignore
+
+      - name: Upload agent quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-quality-report
+          path: |
+            AGENT_QUALITY_REPORT.md
+            AGENT_QUALITY_REPORT.json
+            .local/agent-quality-results.json
+            SCREENSHOT_AUDIT.md
+            PRODUCT_PAGE_AUDIT.md
+            DASHBOARD_AUDIT.md
+            HANDOFF_REPORT.md
+            .codex-loop/
+          if-no-files-found: ignore
+
+  live-agent-smoke:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && secrets.OPENROUTER_API_KEY != '' }}
+    env:
+      AGENT_MODE: live
+      NEXT_PUBLIC_DEMO_MODE: "true"
+      SUPABASE_AGENT_ENABLED: "false"
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      SALES_AGENT_MODEL: google/gemini-2.5-flash-lite
+      SALES_AGENT_FALLBACK_MODEL: qwen/qwen3-235b-a22b-2507
+      SALES_AGENT_FALLBACK2_MODEL: deepseek-chat
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Live client handoff suite
+        run: pnpm run handoff:check
+
+      - name: Upload live agent quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-agent-quality-report
+          path: |
+            AGENT_QUALITY_REPORT.md
+            .local/agent-quality-results.json
+          if-no-files-found: ignore

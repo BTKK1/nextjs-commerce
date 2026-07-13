@@ -1,0 +1,29 @@
+{
+  "startedAt": "2026-07-08T23:01:18.545Z",
+  "maxHours": 10,
+  "iteration": 11,
+  "liveBaseUrl": "http://127.0.0.1:3002",
+  "agentModeRequired": "live",
+  "mockAllowed": false,
+  "totalLiveConversations": 236,
+  "totalLiveUserMessages": 1084,
+  "productsCovered": [
+    "atelier-wool-coat",
+    "noir-cashmere-crew",
+    "high-rise-straight-denim",
+    "poplin-oxford-shirt",
+    "everyday-leather-tote",
+    "pleated-linen-trouser",
+    "silk-square-scarf",
+    "ribbed-merino-tank"
+  ],
+  "languagesCovered": [
+    "en",
+    "ar"
+  ],
+  "consecutiveCleanLiveBatches": 6,
+  "openP0": 0,
+  "openP1": 0,
+  "openP2": 0,
+  "readyForClientHandoff": true
+}

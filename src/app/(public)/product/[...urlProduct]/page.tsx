@@ -37,6 +37,8 @@ import {
 import { WishlistToggle } from "@/components/catalog/product/WishlistToggle";
 import { CompareToggle } from "@/components/catalog/product/CompareToggle";
 import { getProductMetadata } from "@/utils/helper";
+import { DemoProductPage } from "@/components/saleh-demo/DemoProductPage";
+import { getDemoProductBySlug } from "@/data/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +118,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { urlProduct } = await params;
   const fullPath = urlProduct.join("/");
+  const demoProduct = getDemoProductBySlug(fullPath);
+  if (demoProduct) {
+    return {
+      title: `${demoProduct.name} | Maison Vert`,
+      description: demoProduct.shortDescription,
+    };
+  }
   const product = await getSingleProduct(fullPath);
   const image = getImageUrl(product?.baseImageUrl, baseUrl, NOT_IMAGE) || undefined;
   return getProductMetadata(product, image);
@@ -129,6 +138,10 @@ export default async function ProductPage({
 }) {
   const { urlProduct } = await params;
   const fullPath = urlProduct.join("/");
+  const demoProduct = getDemoProductBySlug(fullPath);
+  if (demoProduct) {
+    return <DemoProductPage product={demoProduct} />;
+  }
   const product = await getSingleProduct(fullPath);
   if (!product) return notFound();
 

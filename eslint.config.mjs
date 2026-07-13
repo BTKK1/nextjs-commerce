@@ -34,7 +34,16 @@ const eslintConfig = defineConfig([
       "no-var": "error",
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    ".local/**",
+    ".screenshots/**",
+    "out/**",
+    "build/**",
+    "playwright-report/**",
+    "test-results/**",
+    "next-env.d.ts",
+  ]),
 ]);
 
 export default eslintConfig;

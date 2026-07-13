@@ -1,12 +1,14 @@
-import CheckOut from "@/components/checkout";
+import { DemoCheckoutPage } from "@/components/saleh-demo/DemoCheckoutPage";
 
-export default async function Information({
-  searchParams,
-}: {
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const { step = "email" } = (await searchParams) as { [key: string]: string };
-  return <CheckOut
-    step={step}
-     />;
+export const metadata = {
+  title: "Checkout | Maison Vert",
+  description: "Complete the local Maison Vert demo checkout.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
+export default function CheckoutPage() {
+  return <DemoCheckoutPage />;
 }
