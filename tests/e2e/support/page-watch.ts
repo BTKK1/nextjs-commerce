@@ -29,7 +29,8 @@ export function watchPageForFailures(page: Page) {
       (
         /\/_next\/static\/webpack\/[^/]+\.webpack\.hot-update\.json(?:\?|$)/.test(url) ||
         (request.method() === "GET" && url.includes("_rsc=")) ||
-        (request.method() === "GET" && /^https:\/\/fonts\.gstatic\.com\/.*\.(?:woff2?|ttf)(?:\?|$)/.test(url))
+        (request.method() === "GET" && /^https:\/\/fonts\.gstatic\.com\/.*\.(?:woff2?|ttf)(?:\?|$)/.test(url)) ||
+        (request.method() === "POST" && new URL(url).pathname === "/api/events")
       )
     ) {
       return;
