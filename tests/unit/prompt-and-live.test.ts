@@ -186,6 +186,26 @@ describe("prompt builder and live provider config", () => {
     restoreEnv("DEEPSEEK_API_KEY", previous.deepseekKey);
   });
 
+  it("allows the deterministic provider in a production build only for the explicit browser CI runtime", async () => {
+    const previous = {
+      testProvider: process.env.AGENT_TEST_PROVIDER,
+      testRuntime: process.env.AGENT_TEST_RUNTIME,
+    };
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CI", "true");
+    process.env.AGENT_TEST_PROVIDER = "deterministic";
+    process.env.AGENT_TEST_RUNTIME = "browser-ci";
+
+    const answer = await generateAgentAnswer(demoProducts[0], "What is the price?");
+
+    expect(answer.text).toContain("$489");
+    expect(answer.model).toBe("deterministic-test-provider");
+    expect(answer.providerRoute).toBe("deterministic-test-provider(ok)");
+
+    restoreEnv("AGENT_TEST_PROVIDER", previous.testProvider);
+    restoreEnv("AGENT_TEST_RUNTIME", previous.testRuntime);
+  });
+
   it("sends trusted server-side conversation history to the live model", async () => {
     const previousKey = process.env.OPENROUTER_API_KEY;
     process.env.OPENROUTER_API_KEY = "test-openrouter-key";

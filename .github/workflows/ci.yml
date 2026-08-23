@@ -55,6 +55,7 @@ jobs:
       - name: Non-agent browser coverage
         env:
           AGENT_TEST_PROVIDER: deterministic
+          AGENT_TEST_RUNTIME: browser-ci
           PLAYWRIGHT_USE_BUILD_SERVER: "1"
         run: pnpm run test:e2e:product-pages && pnpm run test:e2e:agent && pnpm run test:e2e:dashboard
 

@@ -650,7 +650,8 @@ export async function generateAgentAnswer(
 ): Promise<AgentAnswer> {
   const config = getModelConfig();
   const language = detectLanguage(message);
-  if (process.env.NODE_ENV !== "production" && process.env.AGENT_TEST_PROVIDER === "deterministic") {
+  const deterministicBrowserCi = process.env.CI === "true" && process.env.AGENT_TEST_RUNTIME === "browser-ci";
+  if (process.env.AGENT_TEST_PROVIDER === "deterministic" && (process.env.NODE_ENV !== "production" || deterministicBrowserCi)) {
     return deterministicTestProviderAnswer(product, message, language);
   }
 
