@@ -32,6 +32,7 @@ async function askAgent(input: {
 
 describe("agent response evaluation", () => {
   beforeEach(() => {
+    vi.stubEnv("OPENROUTER_API_KEY", "test-openrouter-key");
     process.env.AGENT_MODE = "live";
     process.env.DEMO_PERSISTENCE = "memory";
     process.env.SUPABASE_AGENT_ENABLED = "false";
@@ -51,6 +52,7 @@ describe("agent response evaluation", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("passes English product-knowledge scoring", async () => {
