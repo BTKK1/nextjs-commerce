@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getCatalogProvider, listCatalogProviders } from "@/lib/catalog";
 import { buildAuthorizationUrl, extractWebhookStoreId, getProviderReadiness, isSameOriginMutation, summarizeWebhookPayload, verifyWebhookSignature, verifyZidWebhookAuthorization, webhookEventKey } from "@/lib/integrations/registry";
+import { normalizeSallaStoreProfile } from "@/lib/integrations/salla-client";
 import { openZidCredentials, sealZidCredentials, type ZidCredentials } from "@/lib/integrations/zid-credentials";
 import { getSellerKnowledgeForProduct } from "@/lib/knowledge/seller-knowledge";
 import { createSeedDatabase } from "@/lib/storage/seed";
@@ -13,6 +14,26 @@ import { GET as getZidWidget } from "@/app/zid-widget.js/route";
 afterEach(() => vi.unstubAllEnvs());
 
 describe("merchant-installable platform foundation", () => {
+  it("normalizes Salla Easy Mode OAuth user-info into the connected store profile", () => {
+    expect(normalizeSallaStoreProfile({
+      data: {
+        id: 88,
+        email: "owner@example.test",
+        merchant: {
+          id: 1177638915,
+          name: "Nbeh Demo Store",
+          domain: "https://demostore.salla.sa/dev-nbeh-demo",
+        },
+      },
+    }, "fallback-store")).toEqual({
+      storeId: "1177638915",
+      name: "Nbeh Demo Store",
+      email: "owner@example.test",
+      url: "https://demostore.salla.sa",
+      allowedOrigins: ["https://demostore.salla.sa"],
+    });
+  });
+
   it("publishes explicit provider capabilities without pretending Salla or Zid is connected", () => {
     const providers = listCatalogProviders();
     expect(providers.map((provider) => provider.provider)).toEqual(["demo_catalog", "salla", "zid"]);

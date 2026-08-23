@@ -12,6 +12,13 @@ function text(value: unknown): string {
   return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
 }
 
+function safeSallaError(payload: unknown): string {
+  const root = record(payload);
+  const error = record(root.error);
+  const message = text(error.message ?? root.error_description ?? root.message);
+  return message ? message.replace(/[\r\n]+/g, " ").slice(0, 240) : "unknown_error";
+}
+
 export function normalizeSallaExpiry(value: unknown, issuedAt = Date.now()): number | null {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) return null;
@@ -54,8 +61,11 @@ export async function refreshSallaCredentials(credentials: SallaCredentials): Pr
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),
   });
-  if (!response.ok) throw new Error(`Salla token refresh failed with status ${response.status}.`);
-  return tokenPayload(await response.json(), credentials);
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`Salla token refresh failed with status ${response.status} (${safeSallaError(payload)}).`);
+  }
+  return tokenPayload(payload, credentials);
 }
 
 function expiryInMilliseconds(credentials: SallaCredentials): number | null {
@@ -96,6 +106,7 @@ export async function fetchSallaJson(
   let credentials = await currentSallaCredentials(credentialRef, persistCredentialRef);
   const url = endpoint instanceof URL ? endpoint : new URL(endpoint, "https://api.salla.dev");
   let refreshedAfterUnauthorized = false;
+  let lastError = "unknown_error";
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const response = await fetch(url, {
       ...init,
@@ -108,6 +119,8 @@ export async function fetchSallaJson(
       signal: init.signal ?? AbortSignal.timeout(15_000),
     });
     if (response.ok) return response.json();
+    const errorPayload = await response.json().catch(() => ({}));
+    lastError = safeSallaError(errorPayload);
     if (response.status === 401 && !refreshedAfterUnauthorized && credentials.refreshToken) {
       credentials = await refreshSallaCredentials(credentials);
       await persistCredentials(credentials, persistCredentialRef);
@@ -115,7 +128,7 @@ export async function fetchSallaJson(
       continue;
     }
     if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 3) {
-      throw new Error(`Salla API request failed with status ${response.status}.`);
+      throw new Error(`Salla API request failed with status ${response.status} (${lastError}).`);
     }
     const retryAfter = Number(response.headers.get("retry-after"));
     const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
@@ -123,7 +136,7 @@ export async function fetchSallaJson(
       : Math.min(750 * (2 ** attempt) + Math.floor(Math.random() * 300), 8_000);
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
-  throw new Error("Salla API request retry budget was exhausted.");
+  throw new Error(`Salla API request retry budget was exhausted (${lastError}).`);
 }
 
 export interface SallaStoreProfile {
@@ -147,8 +160,12 @@ function normalizeOrigin(value: unknown): string | null {
 
 export function normalizeSallaStoreProfile(payload: unknown, fallbackStoreId: string): SallaStoreProfile {
   const root = record(payload);
-  const data = record(root.data);
-  const store = Object.keys(record(data.store)).length ? record(data.store) : data;
+  const data = Object.keys(record(root.data)).length ? record(root.data) : root;
+  const store = Object.keys(record(data.store)).length
+    ? record(data.store)
+    : Object.keys(record(data.merchant)).length
+      ? record(data.merchant)
+      : data;
   const domain = record(store.domain);
   const origins = [
     store.url,
@@ -162,7 +179,7 @@ export function normalizeSallaStoreProfile(payload: unknown, fallbackStoreId: st
   return {
     storeId: text(store.id ?? store.merchant_id) || fallbackStoreId,
     name: text(store.name ?? store.title) || `Salla Store ${fallbackStoreId}`,
-    email: text(store.email ?? record(store.contacts).email) || null,
+    email: text(store.email ?? record(store.contacts).email ?? data.email) || null,
     url: origins[0] || null,
     allowedOrigins: [...new Set(origins)].slice(0, 8),
   };
@@ -173,6 +190,15 @@ export async function getSallaStoreProfile(
   fallbackStoreId: string,
   persistCredentialRef?: (credentialRef: string) => Promise<void>,
 ): Promise<SallaStoreProfile> {
-  const payload = await fetchSallaJson(credentialRef, "/admin/v2/store/info", {}, persistCredentialRef);
+  // Salla documents the OAuth user-info endpoint as the canonical way to
+  // resolve the merchant immediately after an Easy Mode authorization event.
+  // It is available before the installation has finished activating every
+  // Admin API surface, while still binding the token to its merchant.
+  const payload = await fetchSallaJson(
+    credentialRef,
+    "https://accounts.salla.sa/oauth2/user/info",
+    {},
+    persistCredentialRef,
+  );
   return normalizeSallaStoreProfile(payload, fallbackStoreId);
 }
