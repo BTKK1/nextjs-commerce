@@ -6,6 +6,24 @@ on:
   pull_request:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      live_agent_suite:
+        description: "Run the real OX Alpha agent quality suite"
+        required: false
+        default: false
+        type: boolean
+      live_commerce_chat:
+        description: "Run one real product-grounded chat on Salla and Zid"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: nbeh-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -16,9 +34,6 @@ jobs:
       NEXT_PUBLIC_DEMO_MODE: "true"
       DATA_BACKEND: local
       SUPABASE_AGENT_ENABLED: "false"
-      SALES_AGENT_MODEL: google/gemini-2.5-flash-lite
-      SALES_AGENT_FALLBACK_MODEL: qwen/qwen3-235b-a22b-2507
-      SALES_AGENT_FALLBACK2_MODEL: deepseek-chat
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -92,17 +107,21 @@ jobs:
           if-no-files-found: ignore
 
   live-agent-smoke:
+    name: Continuous OX Alpha agent quality
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    timeout-minutes: 20
+    needs: verify
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.live_agent_suite) }}
     env:
       AGENT_MODE: live
       NEXT_PUBLIC_DEMO_MODE: "true"
       DATA_BACKEND: local
       SUPABASE_AGENT_ENABLED: "false"
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      SALES_AGENT_MODEL: google/gemini-2.5-flash-lite
-      SALES_AGENT_FALLBACK_MODEL: qwen/qwen3-235b-a22b-2507
-      SALES_AGENT_FALLBACK2_MODEL: deepseek-chat
+      CONTINUOUS_TEST_MODEL: stealth/ox-alpha
+      SALES_AGENT_MODEL: stealth/ox-alpha
+      SALES_AGENT_DISABLE_FALLBACKS: "true"
+      PRODUCT_AGENT_DISABLE_FALLBACKS: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -121,11 +140,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Verify OX Alpha is the only configured route
+        run: |
+          node --import ts-node/esm -e "import('./src/lib/ai/model-config.ts').then(({getModelConfig}) => { const routes = getModelConfig().routes; if (routes.length !== 1 || routes[0].provider !== 'openrouter' || routes[0].model !== 'stealth/ox-alpha') throw new Error('Continuous test model route is not locked to OX Alpha'); console.log('Model route locked to OpenRouter:stealth/ox-alpha'); })"
 
-      - name: Live client handoff suite
-        run: pnpm run handoff:check
+      - name: Continuous OX Alpha smoke
+        run: pnpm run test:agent:continuous
+
+      - name: Full live OX Alpha agent quality suite
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.live_agent_suite }}
+        run: pnpm run test:agent:live
 
       - name: Upload live agent quality report
         if: always()
@@ -136,3 +160,26 @@ jobs:
             AGENT_QUALITY_REPORT.md
             .local/agent-quality-results.json
           if-no-files-found: ignore
+
+  production-commerce-gate:
+    name: Production Salla + Zid gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: verify
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    environment: production
+    env:
+      EXPECTED_GIT_SHA: ${{ github.sha }}
+      PRODUCTION_SMOKE_URL: https://www.nbeh.io
+      PRODUCTION_COMMERCE_LIVE_CHAT: ${{ github.event_name == 'workflow_dispatch' && inputs.live_commerce_chat && 'true' || 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Wait for deployed commit and verify Salla + Zid
+        run: node scripts/verify-production-commerce.mjs

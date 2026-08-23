@@ -63,13 +63,10 @@ export function baseHandoffEnv(extra = {}) {
     DATA_BACKEND: extra.DATA_BACKEND ?? process.env.DATA_BACKEND ?? "supabase",
     NEXTAUTH_SECRET: "handoff-local-secret",
     SUPABASE_AGENT_ENABLED: extra.SUPABASE_AGENT_ENABLED ?? process.env.SUPABASE_AGENT_ENABLED ?? "true",
-    SALES_AGENT_MODEL: process.env.SALES_AGENT_MODEL || "google/gemini-2.5-flash-lite",
-    SALES_AGENT_FALLBACK_MODEL: process.env.SALES_AGENT_FALLBACK_MODEL || "qwen/qwen3-235b-a22b-2507",
-    SALES_AGENT_FALLBACK2_MODEL: process.env.SALES_AGENT_FALLBACK2_MODEL || "deepseek-chat",
-    PRODUCT_AGENT_MODEL: process.env.PRODUCT_AGENT_MODEL || "google/gemini-2.5-flash-lite",
-    PRODUCT_AGENT_FALLBACK_MODEL: process.env.PRODUCT_AGENT_FALLBACK_MODEL || "qwen/qwen3-235b-a22b-2507",
-    PRODUCT_AGENT_FALLBACK2_MODEL: process.env.PRODUCT_AGENT_FALLBACK2_MODEL || "deepseek-chat",
-    OPENROUTER_MODEL: process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-lite",
+    SALES_AGENT_MODEL: process.env.CONTINUOUS_TEST_MODEL || "stealth/ox-alpha",
+    SALES_AGENT_DISABLE_FALLBACKS: "true",
+    PRODUCT_AGENT_DISABLE_FALLBACKS: "true",
+    OPENROUTER_MODEL: process.env.CONTINUOUS_TEST_MODEL || "stealth/ox-alpha",
     ...extra,
   };
 }

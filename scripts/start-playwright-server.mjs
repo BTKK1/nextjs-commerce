@@ -12,9 +12,9 @@ const environment = {
   DATA_BACKEND: process.env.DATA_BACKEND || "local",
   SUPABASE_AGENT_ENABLED: process.env.SUPABASE_AGENT_ENABLED || "false",
   DEMO_DATA_FILE: process.env.DEMO_DATA_FILE || join(tmpdir(), `nbeh-playwright-${process.pid}.json`),
-  SALES_AGENT_MODEL: process.env.SALES_AGENT_MODEL || "google/gemini-2.5-flash-lite",
-  SALES_AGENT_FALLBACK_MODEL: process.env.SALES_AGENT_FALLBACK_MODEL || "qwen/qwen3-235b-a22b-2507",
-  SALES_AGENT_FALLBACK2_MODEL: process.env.SALES_AGENT_FALLBACK2_MODEL || "deepseek-chat",
+  SALES_AGENT_MODEL: process.env.CONTINUOUS_TEST_MODEL || "stealth/ox-alpha",
+  SALES_AGENT_DISABLE_FALLBACKS: "true",
+  PRODUCT_AGENT_DISABLE_FALLBACKS: "true",
   NEXTAUTH_URL: process.env.NEXTAUTH_URL || `http://${host}:${port}`,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || "playwright-local-secret",
 };

@@ -678,7 +678,7 @@ export async function generateAgentAnswer(
   };
 
   const configuredProvider: ProductAgentRoute["provider"] = runtimeConfig?.modelProvider === "deepseek-direct" ? "deepseek-direct" : "openrouter";
-  const routes: ProductAgentRoute[] = runtimeConfig
+  const routes: ProductAgentRoute[] = runtimeConfig && config.fallbacksEnabled
     ? [{ provider: configuredProvider, model: runtimeConfig.modelName }, ...config.routes.filter((route) => route.model !== runtimeConfig.modelName)]
     : config.routes;
 

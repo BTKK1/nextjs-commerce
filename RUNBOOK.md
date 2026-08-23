@@ -1,5 +1,15 @@
 # Showcase Build Runbook
 
+## CI/CD release gates
+
+Every pull request and main-branch push runs static checks, database contract checks, deterministic unit/integration tests, a production build, and browser coverage. Main-branch pushes then wait for `www.nbeh.io` to report the exact Git commit through `/api/agent/health` before checking both real commerce demo installations.
+
+The production commerce gate is intentionally zero-model-cost by default. It verifies health, persistence, identical branded Salla/Zid loaders, tenant-scoped widget configuration, real product context, and widget preferences for both platforms. A maintainer can run the `CI` workflow manually with **Run one real product-grounded chat on Salla and Zid** enabled when an actual model/API check is needed.
+
+Every main-branch push runs a small English/Arabic live-agent smoke against OpenRouter model `stealth/ox-alpha`. Model fallback is hard-disabled, so this path cannot spend calls on Gemini, Qwen, DeepSeek, or any other model. The larger quality matrix remains isolated behind the **Run the real OX Alpha agent quality suite** workflow input. Neither path changes the model selected for live merchant agents.
+
+Do not promote a release when either `verify` or `Production Salla + Zid gate` fails. Inspect the failing platform, restore the last known-good Vercel deployment if shopper traffic is affected, and repair forward on `main`. Never bypass failed tenant-isolation, credential, webhook, catalog, or product-context checks.
+
 This runbook covers the Maison Vert demo milestone for client handoff readiness.
 
 ## Readiness Command

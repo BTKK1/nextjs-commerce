@@ -8,6 +8,11 @@ export const TING_SALES_AGENT_FALLBACK2_MODEL = "deepseek-chat";
 export const FALLBACK_OPENROUTER_MODEL = TING_SALES_AGENT_PRIMARY_MODEL;
 export const PRODUCT_AGENT_PROMPT_VERSION = "product-agent-grounded-sales-v2";
 
+function modelFallbacksEnabled(): boolean {
+  return process.env.SALES_AGENT_DISABLE_FALLBACKS !== "true"
+    && process.env.PRODUCT_AGENT_DISABLE_FALLBACKS !== "true";
+}
+
 export interface ProductAgentRoute {
   provider: ProductAgentProvider;
   model: string;
@@ -18,6 +23,7 @@ export interface ModelConfig {
   model: string;
   mode: AgentMode;
   routes: ProductAgentRoute[];
+  fallbacksEnabled: boolean;
   apiKey?: string;
   deepseekApiKey?: string;
   siteUrl?: string;
@@ -41,17 +47,21 @@ export function getModelConfig(): ModelConfig {
     process.env.SALES_AGENT_FALLBACK2_MODEL ||
     process.env.PRODUCT_AGENT_FALLBACK2_MODEL ||
     TING_SALES_AGENT_FALLBACK2_MODEL;
-  const routes: ProductAgentRoute[] = [
-    { provider: "openrouter", model },
-    { provider: "openrouter", model: fallbackModel },
-    { provider: "deepseek-direct", model: fallback2Model }
-  ];
+  const fallbacksEnabled = modelFallbacksEnabled();
+  const routes: ProductAgentRoute[] = fallbacksEnabled
+    ? [
+        { provider: "openrouter", model },
+        { provider: "openrouter", model: fallbackModel },
+        { provider: "deepseek-direct", model: fallback2Model },
+      ]
+    : [{ provider: "openrouter", model }];
   const mode: AgentMode = "live";
 
   return {
     provider: "openrouter",
     model,
     routes,
+    fallbacksEnabled,
     mode,
     apiKey,
     deepseekApiKey,

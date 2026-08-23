@@ -34,12 +34,14 @@ describe("prompt builder and live provider config", () => {
       salesFallback2: process.env.SALES_AGENT_FALLBACK2_MODEL,
       product: process.env.PRODUCT_AGENT_MODEL,
       openrouter: process.env.OPENROUTER_MODEL,
+      disableFallbacks: process.env.SALES_AGENT_DISABLE_FALLBACKS,
     };
     delete process.env.SALES_AGENT_MODEL;
     delete process.env.SALES_AGENT_FALLBACK_MODEL;
     delete process.env.SALES_AGENT_FALLBACK2_MODEL;
     delete process.env.PRODUCT_AGENT_MODEL;
     delete process.env.OPENROUTER_MODEL;
+    delete process.env.SALES_AGENT_DISABLE_FALLBACKS;
 
     expect(getModelConfig().routes).toEqual([
       { provider: "openrouter", model: "google/gemini-2.5-flash-lite" },
@@ -52,6 +54,16 @@ describe("prompt builder and live provider config", () => {
     restoreEnv("SALES_AGENT_FALLBACK2_MODEL", previous.salesFallback2);
     restoreEnv("PRODUCT_AGENT_MODEL", previous.product);
     restoreEnv("OPENROUTER_MODEL", previous.openrouter);
+    restoreEnv("SALES_AGENT_DISABLE_FALLBACKS", previous.disableFallbacks);
+  });
+
+  it("can lock continuous live testing to one OpenRouter model", () => {
+    vi.stubEnv("SALES_AGENT_MODEL", "stealth/ox-alpha");
+    vi.stubEnv("SALES_AGENT_DISABLE_FALLBACKS", "true");
+
+    expect(getModelConfig().routes).toEqual([
+      { provider: "openrouter", model: "stealth/ox-alpha" },
+    ]);
   });
 
   it("includes current product context and only scoped related products", () => {
