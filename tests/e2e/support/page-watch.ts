@@ -28,7 +28,8 @@ export function watchPageForFailures(page: Page) {
       errorText === "net::ERR_ABORTED" &&
       (
         /\/_next\/static\/webpack\/[^/]+\.webpack\.hot-update\.json(?:\?|$)/.test(url) ||
-        (request.method() === "GET" && url.includes("_rsc="))
+        (request.method() === "GET" && url.includes("_rsc=")) ||
+        (request.method() === "GET" && /^https:\/\/fonts\.gstatic\.com\/.*\.(?:woff2?|ttf)(?:\?|$)/.test(url))
       )
     ) {
       return;
