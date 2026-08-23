@@ -19,6 +19,15 @@ export function normalizeQuestion(question: string): string {
     .trim();
 }
 
+function includesArabicToken(value: string, expected: string[]): boolean {
+  const tokens = value.split(/\s+/).filter(Boolean);
+  return tokens.some((token) => {
+    const withoutConjunction = token.startsWith("و") ? token.slice(1) : token;
+    const withoutArticle = withoutConjunction.startsWith("ال") ? withoutConjunction.slice(2) : withoutConjunction;
+    return expected.includes(withoutConjunction) || expected.includes(withoutArticle);
+  });
+}
+
 export function classifyQuestionIntent(message: string): string {
   const normalized = normalizeQuestion(message);
   if (/(price|cost|expensive|sar|سعر|بكم|غالي|تكلفه|تكلفة)/.test(normalized)) return "price";
@@ -26,7 +35,8 @@ export function classifyQuestionIntent(message: string): string {
   if (/(gift|present|هديه|هدية|اهدي|مناسبه)/.test(normalized)) return "gift";
   if (/(quality|premium|original|جوده|جودة|اصلي|فخم|خامه|خامة)/.test(normalized)) return "quality";
   if (/(suitable|fit|for me|practical|مناسب|يناسب|عملي|مجلس|دوام)/.test(normalized)) return "suitability";
-  if (/(variant|size|color|finish|pack|حجم|مقاس|لون|نوع|باقه|باقة|خيار|اختار)/.test(normalized)) return "variant";
+  if (/(variant|size|color|finish|pack)/.test(normalized)
+    || includesArabicToken(normalized, ["حجم", "مقاس", "لون", "نوع", "باقه", "خيار", "اختار"])) return "variant";
   if (/(care|wash|clean|store|عنايه|عناية|غسيل|تنظيف|احفظ)/.test(normalized)) return "care";
   if (/(warranty|guarantee|ضمان)/.test(normalized)) return "warranty";
   if (/(certificate|certified|authenticity|معتمد|شهاده|شهادة)/.test(normalized)) return "certification";
@@ -41,7 +51,9 @@ export function detectObjection(message: string): ObjectionCategory | undefined 
   if (/(shipping|delivery|arrive|توصيل|شحن|يوصل)/.test(normalized)) return "shipping_concern";
   if (/(gift|present|هديه|هدية|اهدي)/.test(normalized)) return "gift_concern";
   if (/(suitable|fit|for me|practical|مجلس|دوام|مناسب|يناسب|يكفي|عملي)/.test(normalized)) return "suitability_concern";
-  if (/(which|variant|size|color|finish|اختار|اي نوع|أي نوع|حجم|مقاس|لون|محتار)/.test(normalized)) return "variant_confusion";
+  if (/(which|variant|size|color|finish)/.test(normalized)
+    || normalized.includes("اي نوع")
+    || includesArabicToken(normalized, ["اختار", "حجم", "مقاس", "لون", "محتار"])) return "variant_confusion";
   if (/(care|wash|clean|scratch|عنايه|عناية|تنظيف|يخدش)/.test(normalized)) return "maintenance_concern";
   return undefined;
 }

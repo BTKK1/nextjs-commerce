@@ -277,7 +277,7 @@ describe("prompt builder and live provider config", () => {
     process.env.OPENROUTER_API_KEY = "test-openrouter-key";
     const product = demoProducts.find((item) => item.slug === "high-rise-straight-denim")!;
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      choices: [{ message: { content: "أهلين، هذا هو بنطلون High-Rise Straight Denim بقصة مستقيمة وخصر مرتفع. إذا تبي رأيي، خيار عملي للاستخدام اليومي." } }],
+      choices: [{ message: { content: "أهلًا بك، هذا هو بنطلون High-Rise Straight Denim بقصة مستقيمة وخصر مرتفع. إذا تبي رأيي، خيار عملي للاستخدام اليومي." } }],
       usage: { prompt_tokens: 100, completion_tokens: 30, total_tokens: 130 },
     }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -286,7 +286,7 @@ describe("prompt builder and live provider config", () => {
 
     expect(answer.fallbackReason).toBeUndefined();
     expect(answer.text).toContain("High-Rise Straight Denim");
-    expect(answer.text).not.toMatch(/^أهلين/);
+    expect(answer.text).not.toMatch(/^أهل|^ًا بك/);
     expect(answer.providerRoute).not.toContain("output_guardrail");
     restoreEnv("OPENROUTER_API_KEY", previousKey);
   });

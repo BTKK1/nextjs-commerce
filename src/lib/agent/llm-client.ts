@@ -451,7 +451,7 @@ function cleanCustomerFacingText(text: string): string {
   const cleaned = text
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/^catalog-backed detail:.*$/gim, "")
-    .replace(/^\s*(?:(?:welcome|hi|hello|hey)(?:\s+there)?|(?:أهل(?:اً|ا|ين)?|اهل(?:ا|ين)?|هلا(?:\s+والله)?))\s*[!،,.:—–-]*\s*/i, "")
+    .replace(/^\s*(?:(?:welcome|hi|hello|hey)(?:\s+there)?|(?:أهل(?:ًا|اً|ا|ين)?|اهل(?:ا|ين)?|مرحب(?:ًا|اً|ا)?|هلا(?:\s+والله)?|حياك)(?:\s+بك)?)\s*[!،,.:—–-]*\s*/i, "")
     .replace(/\bكتن\b/g, "كتان")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -753,6 +753,10 @@ export async function generateAgentAnswer(
       if (detectedObjection && objectionGuidanceApplied) {
         finalText = deterministicObjectionGuidance(product, message, finalText, language, detectedObjection);
       }
+      const purchaseIntentGuidanceApplied = isDirectPurchaseIntent(message);
+      if (purchaseIntentGuidanceApplied) {
+        finalText = deterministicPurchaseIntentAnswer(product, language);
+      }
       const questionLimitedText = limitAnswerToOneQuestion(finalText, language);
       const questionLimitApplied = questionLimitedText !== finalText;
       finalText = questionLimitedText;
@@ -825,7 +829,7 @@ export async function generateAgentAnswer(
         language,
         provider: route.provider,
         model: route.model,
-        providerRoute: `${routeLabel(attempts)}${compatibilityGuardrailApplied ? "->compatibility_guardrail" : ""}${priceGroundingApplied ? "->price_grounding_guardrail" : ""}${objectionGuidanceApplied ? "->objection_guidance_guardrail" : ""}${questionLimitApplied ? "->question_limit_guardrail" : ""}`,
+        providerRoute: `${routeLabel(attempts)}${compatibilityGuardrailApplied ? "->compatibility_guardrail" : ""}${priceGroundingApplied ? "->price_grounding_guardrail" : ""}${objectionGuidanceApplied ? "->objection_guidance_guardrail" : ""}${purchaseIntentGuidanceApplied ? "->purchase_intent_guardrail" : ""}${questionLimitApplied ? "->question_limit_guardrail" : ""}`,
         promptVersion: runtimeConfig ? `merchant-v${runtimeConfig.versionNumber}` : PRODUCT_AGENT_PROMPT_VERSION,
         promptTokens: hasTokenUsage ? totalPromptTokens : finalResult.promptTokens,
         completionTokens: hasTokenUsage ? totalCompletionTokens : finalResult.completionTokens,

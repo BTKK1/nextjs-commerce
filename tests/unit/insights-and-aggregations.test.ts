@@ -15,6 +15,9 @@ describe("insight extraction and dashboard aggregation", () => {
     expect(normalizeQuestion("Is it WORTH the price?!")).toBe("is it worth the price");
     expect(classifyQuestionIntent("هل يناسب كهدية؟")).toBe("gift");
     expect(detectObjection("This feels expensive")).toBe("price_concern");
+    expect(classifyQuestionIntent("ابي بنطلون")).toBe("general");
+    expect(detectObjection("ابي بنطلون")).toBeUndefined();
+    expect(detectObjection("وش اللون؟")).toBe("variant_confusion");
   });
 
   it("detects weak description signals for missing warranty and delivery data", () => {
