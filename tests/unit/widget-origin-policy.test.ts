@@ -86,7 +86,7 @@ describe("widget embed origin policy", () => {
       }
       if (requestUrl.pathname.endsWith("/platform_integrations")) {
         expect(requestUrl.searchParams.get("external_store_id")).toBe("eq.3220733");
-        expect(requestUrl.searchParams.get("status")).toBe("eq.connected");
+        expect(requestUrl.searchParams.get("status")).toBe("in.(connected,pending,error)");
         return Response.json({ merchant_id: "merchant-zid-1" });
       }
       expect(requestUrl.searchParams.get("id")).toBe("eq.merchant-zid-1");

@@ -3,6 +3,7 @@ import { resolveDataBackend } from "@/lib/backend/mode";
 import { getActiveAgentConfig } from "@/lib/agent/config-repository";
 import { normalizeAgentTone, normalizeArabicDialect, type AgentTonePreset, type ArabicDialect } from "@/lib/agent/welcome";
 import { findSallaInstallation } from "@/lib/integrations/salla-store";
+import { SERVING_COMMERCE_INTEGRATION_STATUSES } from "@/lib/integrations/serving-status";
 import { loadDatabase } from "@/lib/storage/json-store";
 import { createServiceClient, hasSupabaseServiceConfig } from "@/utils/supabase/server";
 
@@ -115,7 +116,7 @@ export async function loadWidgetPreferences(merchantKey: string): Promise<Widget
   if (merchantError) throw merchantError;
   merchantId = merchant?.id ? String(merchant.id) : null;
   if (!merchantId) {
-    const { data: integration, error: integrationError } = await supabase.from("platform_integrations").select("merchant_id").in("provider", ["salla", "zid"]).eq("external_store_id", merchantKey).in("status", ["connected", "pending"]).limit(1).maybeSingle();
+    const { data: integration, error: integrationError } = await supabase.from("platform_integrations").select("merchant_id").in("provider", ["salla", "zid"]).eq("external_store_id", merchantKey).in("status", [...SERVING_COMMERCE_INTEGRATION_STATUSES]).limit(1).maybeSingle();
     if (integrationError) throw integrationError;
     merchantId = integration?.merchant_id ? String(integration.merchant_id) : null;
   }

@@ -5,6 +5,7 @@ import { loadDatabase } from "@/lib/storage/json-store";
 import { DEMO_MERCHANT_ID } from "@/lib/supabase/constants";
 import { createServiceClient, hasSupabaseServiceConfig } from "@/utils/supabase/server";
 import { findSallaInstallation } from "@/lib/integrations/salla-store";
+import { SERVING_COMMERCE_INTEGRATION_STATUSES } from "@/lib/integrations/serving-status";
 import type {
   DashboardSettings,
   DemoDatabase,
@@ -151,7 +152,7 @@ export async function loadSellerKnowledgeForProduct(
     return merchantQuery.maybeSingle();
   });
   if (merchantKey && !merchantResult.data && !merchantResult.error) {
-    const integrationResult = await retryRuntimeQuery(() => supabase.from("platform_integrations").select("merchant_id").in("provider", ["salla", "zid"]).eq("external_store_id", merchantKey).eq("status", "connected").limit(1).maybeSingle());
+    const integrationResult = await retryRuntimeQuery(() => supabase.from("platform_integrations").select("merchant_id").in("provider", ["salla", "zid"]).eq("external_store_id", merchantKey).in("status", [...SERVING_COMMERCE_INTEGRATION_STATUSES]).limit(1).maybeSingle());
     if (integrationResult.error) throw integrationResult.error;
     const integrationMerchantId = integrationResult.data?.merchant_id;
     if (integrationMerchantId) {

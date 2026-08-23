@@ -1,5 +1,6 @@
 import catalog from "@/data/demo-catalog.json";
 import { WIDGET_MERCHANT_KEY_PATTERN } from "@/lib/widget/identity";
+import { SERVING_COMMERCE_INTEGRATION_STATUSES } from "@/lib/integrations/serving-status";
 
 export const EMBED_WIDGET_PATH = "/embed/widget";
 
@@ -121,7 +122,7 @@ async function supabaseAllowedOrigins(
     const integrationQuery = new URL("/rest/v1/platform_integrations", normalizedBaseUrl);
     integrationQuery.searchParams.set("select", "merchant_id");
     integrationQuery.searchParams.set("external_store_id", `eq.${merchantKey}`);
-    integrationQuery.searchParams.set("status", "eq.connected");
+    integrationQuery.searchParams.set("status", `in.(${SERVING_COMMERCE_INTEGRATION_STATUSES.join(",")})`);
     integrationQuery.searchParams.set("provider", "in.(salla,zid)");
     integrationQuery.searchParams.set("limit", "1");
     const integrationResponse = await request(integrationQuery);
