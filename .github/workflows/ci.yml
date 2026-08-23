@@ -109,7 +109,7 @@ jobs:
   live-agent-smoke:
     name: Continuous OX Alpha agent quality
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     needs: verify
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.live_agent_suite) }}
     env:

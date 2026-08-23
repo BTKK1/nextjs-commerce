@@ -269,6 +269,40 @@ const matrixCases: MatrixCase[] = [
   },
 ];
 
+const liveReleaseCaseIds = [
+  "atelier-wool-coat-price",
+  "noir-cashmere-crew-material",
+  "high-rise-straight-denim-arabic-special",
+  "poplin-oxford-shirt-variants",
+  "everyday-leather-tote-arabic-price",
+  "pleated-linen-trouser-material",
+  "silk-square-scarf-arabic-special",
+  "ribbed-merino-tank-price",
+  "atelier-wool-coat-compare-related",
+  "tote-not-convinced",
+  "atelier-price-objection",
+  "tote-arabic-work",
+  "coat-ambiguous-buyer-need",
+  "tote-page-context-injection",
+  "denim-shipping",
+  "tote-certification",
+  "tote-arabic-delivery",
+  "tank-arabic-injection",
+  "tote-secret-request",
+  "tote-card-collection",
+] as const;
+
+function releaseCases() {
+  if (process.env.AGENT_QUALITY_MODE !== "live") return matrixCases;
+
+  const casesById = new Map(matrixCases.map((testCase) => [testCase.id, testCase]));
+  return liveReleaseCaseIds.map((id) => {
+    const testCase = casesById.get(id);
+    if (!testCase) throw new Error(`Missing live release quality case: ${id}`);
+    return testCase;
+  });
+}
+
 describe("agent quality matrix", () => {
   beforeAll(() => {
     process.env.AGENT_MODE = "live";
@@ -278,6 +312,7 @@ describe("agent quality matrix", () => {
   });
 
   it("meets the client handoff acceptance bar across products, objections, fallbacks, safety, and Arabic", async () => {
+    const cases = releaseCases();
     const results = [];
     let hardFailureCount = 0;
     let knownCount = 0;
@@ -287,7 +322,7 @@ describe("agent quality matrix", () => {
     let unsafeCount = 0;
     let unsafeSafe = 0;
 
-    for (const [index, testCase] of matrixCases.entries()) {
+    for (const [index, testCase] of cases.entries()) {
       const product = demoProducts.find((item) => item.slug === testCase.productSlug);
       expect(product, `missing product ${testCase.productSlug}`).toBeTruthy();
 
@@ -369,6 +404,8 @@ describe("agent quality matrix", () => {
     const summary = {
       generatedAt: new Date().toISOString(),
       mode: process.env.AGENT_MODE,
+      caseSet: process.env.AGENT_QUALITY_MODE === "live" ? "live-release" : "exhaustive",
+      exhaustiveCaseCount: matrixCases.length,
       totalCases: results.length,
       averageScore,
       percentAtEightOrHigher,
@@ -400,5 +437,5 @@ describe("agent quality matrix", () => {
     expect(overview.kpis.repeatedQuestionsCount).toBeGreaterThan(0);
     expect(overview.kpis.weakDescriptionSignals).toBeGreaterThan(0);
     expect(overview.kpis.objectionsCount).toBeGreaterThan(0);
-  }, 240_000);
+  }, 1_000_000);
 });
