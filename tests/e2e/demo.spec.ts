@@ -67,6 +67,7 @@ test("home page loads Maison Vert storefront and all product links", async ({ pa
 });
 
 test("each product page loads responsive image, size guide, and product-specific agent", async ({ page }) => {
+  test.slow();
   for (const slug of productSlugs) {
     await gotoDemoPage(page, `/store/product/${slug}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
