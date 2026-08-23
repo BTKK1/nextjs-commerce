@@ -66,6 +66,30 @@ describe("prompt builder and live provider config", () => {
     ]);
   });
 
+  it("retries transient failures on the same locked model without using a fallback", async () => {
+    const product = demoProducts[0];
+    vi.stubEnv("OPENROUTER_API_KEY", "test-openrouter-key");
+    vi.stubEnv("SALES_AGENT_MODEL", "stealth/ox-alpha");
+    vi.stubEnv("SALES_AGENT_DISABLE_FALLBACKS", "true");
+    vi.stubEnv("PRODUCT_AGENT_SAME_ROUTE_RETRIES", "2");
+    vi.stubEnv("PRODUCT_AGENT_RETRY_BASE_MS", "0");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("temporarily rate limited", { status: 429 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        choices: [{ message: { content: `It's $${product.priceSar}.` } }],
+        usage: { prompt_tokens: 100, completion_tokens: 8, total_tokens: 108 },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "What is the price?");
+
+    expect(answer.fallbackReason).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(answer.providerRoute).toContain("openrouter(rate_limited)->openrouter(ok)");
+    expect(answer.model).toBe("stealth/ox-alpha");
+  });
+
   it("includes current product context and only scoped related products", () => {
     process.env.DEMO_PERSISTENCE = "memory";
     resetDatabaseForTests(createSeedDatabase());

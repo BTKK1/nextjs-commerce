@@ -123,6 +123,8 @@ jobs:
       SALES_AGENT_DISABLE_FALLBACKS: "true"
       PRODUCT_AGENT_DISABLE_FALLBACKS: "true"
       PRODUCT_AGENT_TIMEOUT_MS: "120000"
+      PRODUCT_AGENT_SAME_ROUTE_RETRIES: "3"
+      PRODUCT_AGENT_RETRY_BASE_MS: "5000"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

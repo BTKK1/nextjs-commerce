@@ -72,6 +72,28 @@ function timeoutMs(): number {
   return Number.isFinite(value) && value > 0 ? value : 30_000;
 }
 
+function sameRouteRetries(): number {
+  const value = Number(process.env.PRODUCT_AGENT_SAME_ROUTE_RETRIES);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.min(5, Math.floor(value));
+}
+
+function retryBaseMs(): number {
+  const value = Number(process.env.PRODUCT_AGENT_RETRY_BASE_MS);
+  return Number.isFinite(value) && value >= 0 ? Math.min(30_000, value) : 2_000;
+}
+
+function isTransientProviderFailure(result: ProviderCallResult): boolean {
+  return result.errorCode === "rate_limited"
+    || result.errorCode === "timeout"
+    || result.errorCode === "provider_error";
+}
+
+function waitForRetry(attempt: number): Promise<void> {
+  const delay = retryBaseMs() * (2 ** attempt);
+  return delay > 0 ? new Promise((resolve) => setTimeout(resolve, delay)) : Promise.resolve();
+}
+
 function includesNormalized(value: string, needle: string): boolean {
   return value.toLowerCase().includes(needle.toLowerCase());
 }
@@ -677,26 +699,54 @@ export async function generateAgentAnswer(
     }
   };
 
+  const callRoute = async (
+    route: ProductAgentRoute,
+    routeMessage: string,
+    languageSourceMessage: string = message,
+  ): Promise<ProviderCallResult> => {
+    const retries = config.fallbacksEnabled ? 0 : sameRouteRetries();
+    let result: ProviderCallResult | null = null;
+
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      result = await callProvider(
+        route,
+        product,
+        routeMessage,
+        pageContext,
+        knowledge,
+        conversationHistory,
+        runtimeConfig,
+        languageSourceMessage,
+      );
+      attempts.push({
+        provider: route.provider,
+        model: route.model,
+        ok: result.ok,
+        errorCode: result.errorCode,
+        latencyMs: result.latencyMs,
+      });
+      totalLatencyMs += result.latencyMs;
+      addUsage(result);
+      if (result.estimatedCost != null) {
+        totalCost += result.estimatedCost;
+        hasCost = true;
+      }
+
+      if (result.ok || !isTransientProviderFailure(result) || attempt === retries) break;
+      await waitForRetry(attempt);
+    }
+
+    if (!result) throw new Error("Provider route completed without an attempt result");
+    return result;
+  };
+
   const configuredProvider: ProductAgentRoute["provider"] = runtimeConfig?.modelProvider === "deepseek-direct" ? "deepseek-direct" : "openrouter";
   const routes: ProductAgentRoute[] = runtimeConfig && config.fallbacksEnabled
     ? [{ provider: configuredProvider, model: runtimeConfig.modelName }, ...config.routes.filter((route) => route.model !== runtimeConfig.modelName)]
     : config.routes;
 
   for (const route of routes) {
-    const result = await callProvider(route, product, message, pageContext, knowledge, conversationHistory, runtimeConfig);
-    attempts.push({
-      provider: route.provider,
-      model: route.model,
-      ok: result.ok,
-      errorCode: result.errorCode,
-      latencyMs: result.latencyMs
-    });
-    totalLatencyMs += result.latencyMs;
-    addUsage(result);
-    if (result.estimatedCost != null) {
-      totalCost += result.estimatedCost;
-      hasCost = true;
-    }
+    const result = await callRoute(route, message);
 
     if (result.ok && result.text) {
       let finalResult = result;
@@ -713,29 +763,11 @@ export async function generateAgentAnswer(
           ok: false,
           errorCode: duplicateNeeded ? "repeated_answer" : "catalog_grounding_low_confidence",
         };
-        const repairResult = await callProvider(
+        const repairResult = await callRoute(
           route,
-          product,
           buildGroundingRepairMessage(product, message, finalText, duplicateNeeded ? previousAssistantAnswer : null),
-          pageContext,
-          knowledge,
-          conversationHistory,
-          runtimeConfig,
           message,
         );
-        attempts.push({
-          provider: route.provider,
-          model: route.model,
-          ok: repairResult.ok,
-          errorCode: repairResult.errorCode,
-          latencyMs: repairResult.latencyMs
-        });
-        totalLatencyMs += repairResult.latencyMs;
-        addUsage(repairResult);
-        if (repairResult.estimatedCost != null) {
-          totalCost += repairResult.estimatedCost;
-          hasCost = true;
-        }
 
         const repairedText = repairResult.text ? cleanCustomerFacingText(repairResult.text) : null;
         const repairedIsGrounded = repairedText
