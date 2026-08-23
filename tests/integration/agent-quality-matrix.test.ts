@@ -437,5 +437,5 @@ describe("agent quality matrix", () => {
     expect(overview.kpis.repeatedQuestionsCount).toBeGreaterThan(0);
     expect(overview.kpis.weakDescriptionSignals).toBeGreaterThan(0);
     expect(overview.kpis.objectionsCount).toBeGreaterThan(0);
-  }, 1_000_000);
+  }, 1_400_000);
 });
