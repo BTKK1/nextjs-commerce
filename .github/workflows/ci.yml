@@ -13,7 +13,6 @@ jobs:
     env:
       AGENT_MODE: live
       AGENT_QUALITY_MODE: live
-      AGENT_TEST_PROVIDER: deterministic
       NEXT_PUBLIC_DEMO_MODE: "true"
       DATA_BACKEND: local
       SUPABASE_AGENT_ENABLED: "false"
@@ -54,6 +53,8 @@ jobs:
         run: pnpm run build
 
       - name: Non-agent browser coverage
+        env:
+          AGENT_TEST_PROVIDER: deterministic
         run: pnpm run test:e2e:product-pages && pnpm run test:e2e:agent && pnpm run test:e2e:dashboard
 
       - name: Upload Playwright report
