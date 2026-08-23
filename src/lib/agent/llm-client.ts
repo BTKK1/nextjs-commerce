@@ -452,7 +452,7 @@ function cleanCustomerFacingText(text: string): string {
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/^catalog-backed detail:.*$/gim, "")
     .replace(/^\s*(?:(?:welcome|hi|hello|hey)(?:\s+there)?|(?:أهل(?:ًا|اً|ا|ين)?|اهل(?:ا|ين)?|مرحب(?:ًا|اً|ا)?|هلا(?:\s+والله)?|حياك)(?:\s+بك)?)\s*[!،,.:—–-]*\s*/i, "")
-    .replace(/\bكتن\b/g, "كتان")
+    .replace(/(?<![\p{L}\p{N}_])كتن(?![\p{L}\p{N}_])/gu, "كتان")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
@@ -492,7 +492,10 @@ export function limitAnswerToOneQuestion(text: string, language: "ar" | "en"): s
 }
 
 function isDirectPurchaseIntent(message: string): boolean {
-  return /\b(?:buy|purchase|checkout|order)\b|(?:أ|ا)?بي\s+(?:أ|ا)?شتري|(?:أ|ا)?بغى\s+(?:أ|ا)?شتري|(?:أ|ا)?ريد\s+(?:أ|ا)?شتري/.test(message.toLowerCase());
+  const normalized = message.toLowerCase().trim();
+  const englishIntent = /\b(?:i\s+(?:want|need|would\s+like|am\s+ready|'m\s+ready)\s+to\s+(?:buy|purchase|order)|(?:how|where)\s+(?:can|do)\s+i\s+(?:buy|purchase|order)|(?:buy|purchase|order|checkout)(?:\s+(?:it|this|now))?)\b[.!?]*$/.test(normalized);
+  const arabicIntent = /(?:أ|ا)?بي\s+(?:أ|ا)?شتري|(?:أ|ا)?بغى\s+(?:أ|ا)?شتري|(?:أ|ا)?ريد\s+(?:أ|ا)?شتري/.test(normalized);
+  return englishIntent || arabicIntent;
 }
 
 function deterministicPurchaseIntentAnswer(product: DemoProduct, language: "ar" | "en"): string {
@@ -500,6 +503,38 @@ function deterministicPurchaseIntentAnswer(product: DemoProduct, language: "ar" 
     return `تمام، إذا ${product.arabicName || product.name} مناسب لك اختَر الخيار اللي يناسبك من الصفحة واضغط إضافة للسلة لإكمال الطلب.`;
   }
   return `If ${product.name} suits you, choose your preferred option on the product page and use Add to cart to continue.`;
+}
+
+function deterministicTestProviderAnswer(product: DemoProduct, message: string, language: "ar" | "en"): AgentAnswer {
+  const price = formatPriceForRepair(product);
+  const verifiedFact = product.material || product.keyFeatures[0] || product.shortDescription;
+  let text = language === "ar"
+    ? `${product.arabicName || product.name}: ${verifiedFact}`
+    : `${product.name}: ${verifiedFact}`;
+  if (asksAboutPriceOrValue(message)) {
+    text = language === "ar" ? `سعره ${price}.` : `It's ${price}.`;
+  } else {
+    const objection = detectObjection(message);
+    if (objection) text = deterministicObjectionGuidance(product, message, text, language, objection);
+  }
+  return {
+    text: cleanCustomerFacingText(text),
+    detectedObjection: detectObjection(message),
+    confidence: 0.95,
+    mode: "live",
+    language,
+    provider: "openrouter",
+    model: "deterministic-test-provider",
+    providerRoute: "deterministic-test-provider(ok)",
+    promptVersion: PRODUCT_AGENT_PROMPT_VERSION,
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+    estimatedCost: 0,
+    latencyMs: 0,
+    errorCode: null,
+    errorMessage: null,
+  };
 }
 
 async function callProvider(
@@ -615,6 +650,9 @@ export async function generateAgentAnswer(
 ): Promise<AgentAnswer> {
   const config = getModelConfig();
   const language = detectLanguage(message);
+  if (process.env.NODE_ENV !== "production" && process.env.AGENT_TEST_PROVIDER === "deterministic") {
+    return deterministicTestProviderAnswer(product, message, language);
+  }
 
   const attempts: AttemptRecord[] = [];
   let totalLatencyMs = 0;
@@ -753,7 +791,7 @@ export async function generateAgentAnswer(
       if (detectedObjection && objectionGuidanceApplied) {
         finalText = deterministicObjectionGuidance(product, message, finalText, language, detectedObjection);
       }
-      const purchaseIntentGuidanceApplied = isDirectPurchaseIntent(message);
+      const purchaseIntentGuidanceApplied = !detectedObjection && isDirectPurchaseIntent(message);
       if (purchaseIntentGuidanceApplied) {
         finalText = deterministicPurchaseIntentAnswer(product, language);
       }
@@ -761,7 +799,7 @@ export async function generateAgentAnswer(
       const questionLimitApplied = questionLimitedText !== finalText;
       finalText = questionLimitedText;
       if (previousAssistantAnswer && areAgentAnswersNearDuplicates(finalText, previousAssistantAnswer)) {
-        if (isDirectPurchaseIntent(message)) {
+        if (purchaseIntentGuidanceApplied) {
           return {
             text: deterministicPurchaseIntentAnswer(product, language),
             confidence: 0.9,

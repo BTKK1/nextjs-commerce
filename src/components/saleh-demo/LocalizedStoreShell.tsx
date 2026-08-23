@@ -130,6 +130,7 @@ function LanguageToggle({ locale, pathname }: { locale: StoreLocale; pathname: s
     document.documentElement.setAttribute("dir", nextLocale === "ar" ? "rtl" : "ltr");
     window.localStorage.setItem("maison-vert-locale", nextLocale);
     router.prefetch(href);
+    router.push(href);
     setOpen(false);
   }
 
@@ -163,10 +164,10 @@ function LanguageToggle({ locale, pathname }: { locale: StoreLocale; pathname: s
           data-testid="store-language-menu"
         >
           {options.map((option) => (
-            <Link
+            <button
               key={option.locale}
-              href={option.href}
-              className={`flex items-center justify-between gap-4 px-3 py-2 text-sm font-semibold transition ${
+              type="button"
+              className={`flex w-full items-center justify-between gap-4 px-3 py-2 text-sm font-semibold transition ${
                 locale === option.locale ? "bg-ink text-white" : "text-stone-700 hover:bg-stone-100 hover:text-ink"
               }`}
               aria-current={locale === option.locale ? "page" : undefined}
@@ -178,7 +179,7 @@ function LanguageToggle({ locale, pathname }: { locale: StoreLocale; pathname: s
             >
               <span>{option.label}</span>
               <span className="text-xs uppercase tracking-[0.16em]">{option.shortLabel}</span>
-            </Link>
+            </button>
           ))}
         </div>
       ) : null}

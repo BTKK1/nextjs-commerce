@@ -45,6 +45,34 @@ interface ClientWidgetPreferences {
 
 const MAX_STORED_MESSAGES = 30;
 const STORAGE_PREFIX = "nbeh-agent";
+const widgetPreferencesRequests = new Map<string, Promise<ClientWidgetPreferences | null>>();
+
+function loadClientWidgetPreferences(merchantKey: string): Promise<ClientWidgetPreferences | null> {
+  const existing = widgetPreferencesRequests.get(merchantKey);
+  if (existing) return existing;
+  const request = fetch(`/api/widget/preferences?merchantKey=${encodeURIComponent(merchantKey)}`, { cache: "no-store", keepalive: true })
+    .then(async (response) => response.ok ? await response.json() as ClientWidgetPreferences : null)
+    .catch(() => {
+      widgetPreferencesRequests.delete(merchantKey);
+      return null;
+    });
+  widgetPreferencesRequests.set(merchantKey, request);
+  return request;
+}
+
+function sendWidgetEvent(payload: Record<string, unknown>) {
+  const body = JSON.stringify(payload);
+  if (typeof navigator.sendBeacon === "function") {
+    const accepted = navigator.sendBeacon("/api/events", new Blob([body], { type: "application/json" }));
+    if (accepted) return;
+  }
+  void fetch("/api/events", {
+    method: "POST",
+    keepalive: true,
+    headers: { "Content-Type": "application/json" },
+    body,
+  }).catch(() => undefined);
+}
 
 function createSessionId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -440,20 +468,16 @@ export function AgentWidget({ merchantKey, merchantName, productSlug, productNam
   const copy = storeCopy[locale].agent;
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetch(`/api/widget/preferences?merchantKey=${encodeURIComponent(effectiveMerchantKey)}`, { signal: controller.signal, cache: "no-store" })
-      .then(async (response) => response.ok ? await response.json() as ClientWidgetPreferences : null)
+    loadClientWidgetPreferences(effectiveMerchantKey)
       .then((preferences) => {
         if (!preferences) return;
         setWidgetPreferences(preferences);
-        setMessages((current) => current.length === 1 && current[0]?.role === "assistant" && !conversationId
+        setMessages((current) => current.length === 1 && current[0]?.role === "assistant"
           ? [initialAssistantMessage(productName, locale, effectiveMerchantName, preferences.tonePreset, preferences.arabicDialect)]
           : current);
       })
-      .catch(() => undefined)
       .finally(() => setPreferencesLoaded(true));
-    return () => controller.abort();
-  }, [conversationId, effectiveMerchantKey, effectiveMerchantName, locale, productName]);
+  }, [effectiveMerchantKey, effectiveMerchantName, locale, productName]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -522,12 +546,7 @@ export function AgentWidget({ merchantKey, merchantName, productSlug, productNam
   useEffect(() => {
     const visitorRef = getVisitorRef(effectiveMerchantKey);
     const eventTypes = trackProductView ? ["product_page_view", "widget_impression"] : ["widget_impression"];
-    void Promise.all(eventTypes.map((type) => fetch("/api/events", {
-      method: "POST",
-      keepalive: true,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, merchantKey: effectiveMerchantKey, productSlug, visitorRef, locale }),
-    }).catch(() => undefined)));
+    eventTypes.forEach((type) => sendWidgetEvent({ type, merchantKey: effectiveMerchantKey, productSlug, visitorRef, locale }));
   }, [effectiveMerchantKey, locale, productSlug, trackProductView]);
 
   useEffect(() => {
@@ -573,12 +592,7 @@ export function AgentWidget({ merchantKey, merchantName, productSlug, productNam
   useEffect(() => {
     if (!open || chatOpenLoggedRef.current) return;
     chatOpenLoggedRef.current = true;
-    void fetch("/api/events", {
-      method: "POST",
-      keepalive: true,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "chat_opened", merchantKey: effectiveMerchantKey, productSlug, visitorRef: getVisitorRef(effectiveMerchantKey), locale }),
-    }).catch(() => undefined);
+    sendWidgetEvent({ type: "chat_opened", merchantKey: effectiveMerchantKey, productSlug, visitorRef: getVisitorRef(effectiveMerchantKey), locale });
   }, [effectiveMerchantKey, locale, open, productSlug]);
 
   useEffect(() => {

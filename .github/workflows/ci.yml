@@ -13,6 +13,7 @@ jobs:
     env:
       AGENT_MODE: live
       AGENT_QUALITY_MODE: live
+      AGENT_TEST_PROVIDER: deterministic
       NEXT_PUBLIC_DEMO_MODE: "true"
       DATA_BACKEND: local
       SUPABASE_AGENT_ENABLED: "false"

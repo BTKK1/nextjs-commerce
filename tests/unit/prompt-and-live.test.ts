@@ -24,6 +24,7 @@ function restoreEnv(key: string, value: string | undefined) {
 describe("prompt builder and live provider config", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("uses the same Ting sales agent model route order", () => {
@@ -142,6 +143,45 @@ describe("prompt builder and live provider config", () => {
     expect(getModelConfig().mode).toBe("live");
 
     restoreEnv("AGENT_MODE", previous.mode);
+    restoreEnv("OPENROUTER_API_KEY", previous.openrouterKey);
+    restoreEnv("DEEPSEEK_API_KEY", previous.deepseekKey);
+  });
+
+  it("uses the deterministic provider only behind the explicit non-production test flag", async () => {
+    const previous = {
+      testProvider: process.env.AGENT_TEST_PROVIDER,
+    };
+    vi.stubEnv("NODE_ENV", "test");
+    process.env.AGENT_TEST_PROVIDER = "deterministic";
+
+    const answer = await generateAgentAnswer(demoProducts[0], "What is the price?");
+
+    expect(answer.text).toContain("$489");
+    expect(answer.model).toBe("deterministic-test-provider");
+    expect(answer.providerRoute).toBe("deterministic-test-provider(ok)");
+
+    restoreEnv("AGENT_TEST_PROVIDER", previous.testProvider);
+  });
+
+  it("never enables the deterministic test provider in production", async () => {
+    const previous = {
+      testProvider: process.env.AGENT_TEST_PROVIDER,
+      openrouterKey: process.env.OPENROUTER_API_KEY,
+      deepseekKey: process.env.DEEPSEEK_API_KEY,
+    };
+    vi.stubEnv("NODE_ENV", "production");
+    process.env.AGENT_TEST_PROVIDER = "deterministic";
+    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.DEEPSEEK_API_KEY;
+
+    const answer = await generateAgentAnswer(demoProducts[0], "What is the price?");
+
+    expect(answer.model).not.toBe("deterministic-test-provider");
+    expect(answer.providerRoute).not.toContain("deterministic-test-provider");
+    expect(answer.fallbackReason).toBe("model_error");
+    expect(answer.errorCode).toBe("not_configured");
+
+    restoreEnv("AGENT_TEST_PROVIDER", previous.testProvider);
     restoreEnv("OPENROUTER_API_KEY", previous.openrouterKey);
     restoreEnv("DEEPSEEK_API_KEY", previous.deepseekKey);
   });
@@ -418,6 +458,43 @@ describe("prompt builder and live provider config", () => {
     expect(answer.fallbackReason).toBeUndefined();
     expect(answer.text).toContain("إضافة للسلة");
     expect(answer.providerRoute).toContain("purchase_intent_guardrail");
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("keeps price comparisons as objections instead of overriding them as checkout intent", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "everyday-leather-tote")!;
+    const modelAnswer = "I understand the price concern. Its full-grain leather and zip-top closure are the practical differences; if those do not matter for your use, a cheaper option may suit you better.";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: modelAnswer } }],
+      usage: { prompt_tokens: 100, completion_tokens: 28, total_tokens: 128 },
+    }), { status: 200 })));
+
+    const answer = await generateAgentAnswer(product, "It feels expensive. Why should I buy this instead of a cheaper option?");
+
+    expect(answer.detectedObjection).toBe("price_concern");
+    expect(answer.text).toContain("feels expensive");
+    expect(answer.text).toContain("$320");
+    expect(answer.text).toContain("Tuscan leather");
+    expect(answer.text).not.toContain("Add to cart");
+    expect(answer.providerRoute).not.toContain("purchase_intent_guardrail");
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("normalizes the common Arabic linen misspelling with Unicode-aware boundaries", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "pleated-linen-trouser")!;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: "البنطلون مصنوع من 100% كتن إيرلندي متوسط الوزن، مع طيات أمامية مزدوجة." } }],
+      usage: { prompt_tokens: 100, completion_tokens: 24, total_tokens: 124 },
+    }), { status: 200 })));
+
+    const answer = await generateAgentAnswer(product, "وش مميزاته؟");
+
+    expect(answer.text).toContain("كتان إيرلندي");
+    expect(answer.text).not.toContain("كتن إيرلندي");
     restoreEnv("OPENROUTER_API_KEY", previousKey);
   });
 

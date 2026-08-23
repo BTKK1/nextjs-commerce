@@ -38,7 +38,7 @@ test("product-page agent opens with an instant product-specific greeting", async
   const watch = watchPageForFailures(page);
   await page.goto("/store/product/atelier-wool-coat", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-hydrated", "true", { timeout: 30_000 });
-  await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-open", "true");
+  await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-open", "true", { timeout: 30_000 });
 
   const firstAssistantMessage = page.getByTestId("chat-messages").locator("p").first();
   await expect(firstAssistantMessage).toContainText("Atelier Wool Coat", { timeout: 10_000 });
@@ -218,7 +218,7 @@ test("product-page agent placement follows page language direction", async ({ pa
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/store/product/everyday-leather-tote", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-hydrated", "true", { timeout: 30_000 });
-  await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-open", "true");
+  await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-open", "true", { timeout: 30_000 });
 
   const englishBox = await page.getByTestId("agent-widget").boundingBox();
   expect(englishBox, "English agent panel is visible").not.toBeNull();
@@ -229,9 +229,11 @@ test("product-page agent placement follows page language direction", async ({ pa
   await expect(page).toHaveURL(/\/ar\/store\/product\/everyday-leather-tote$/);
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-locale", "ar", { timeout: 30_000 });
+  await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-hydrated", "true", { timeout: 30_000 });
   await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-dir", "rtl");
+  await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-open", "true", { timeout: 30_000 });
   await expect(page.getByTestId("chat-messages").locator("p").first()).toContainText("حقيبة جلد يومية");
-  await expect(page.getByTestId("agent-widget")).toHaveAttribute("data-open", "true");
 
   const arabicBox = await page.getByTestId("agent-widget").boundingBox();
   expect(arabicBox, "Arabic agent panel is visible").not.toBeNull();

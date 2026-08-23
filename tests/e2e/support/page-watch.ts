@@ -24,22 +24,9 @@ export function watchPageForFailures(page: Page) {
     const url = request.url();
     const errorText = request.failure()?.errorText ?? "";
     if (url.includes("/_next/webpack-hmr")) return;
-    const requestUrl = new URL(url);
     if (
       errorText === "net::ERR_ABORTED" &&
-      request.resourceType() === "font" &&
-      requestUrl.protocol === "https:" &&
-      requestUrl.hostname === "fonts.gstatic.com"
-    ) {
-      return;
-    }
-    if (
-      errorText === "net::ERR_ABORTED" &&
-      (url.includes("_rsc=") ||
-        url.includes("/api/events") ||
-        url.includes("/api/widget/preferences") ||
-        url.includes("/_next/image") ||
-        url.includes("/_next/static/chunks/"))
+      /\/_next\/static\/webpack\/[^/]+\.webpack\.hot-update\.json(?:\?|$)/.test(url)
     ) {
       return;
     }
