@@ -89,7 +89,7 @@ jobs:
 
   live-agent-smoke:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' && secrets.OPENROUTER_API_KEY != '' }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     env:
       AGENT_MODE: live
       NEXT_PUBLIC_DEMO_MODE: "true"
