@@ -8,7 +8,7 @@ import { detectLanguage, fallbackText } from "@/lib/agent/language";
 import { estimateAgentTokenReservation, generateAgentAnswer } from "@/lib/agent/llm-client";
 import { buildAgentWelcomeMessage } from "@/lib/agent/welcome";
 import { getActiveAgentConfig, type RuntimeAgentConfig } from "@/lib/agent/config-repository";
-import { loadSupabaseAgentRuntimeState, persistSupabaseAgentTurn } from "@/lib/agent/supabase-runtime";
+import { loadSupabaseAgentRuntimeState, normalizeRuntimeHistory, orderRuntimeHistoryRows, persistSupabaseAgentTurn } from "@/lib/agent/supabase-runtime";
 import { reserveAgentTokenBudget, settleAgentTokenBudget } from "@/lib/agent/token-budget";
 import { detectObjection, detectWeakDescriptionSignal, extractInsightsForMessage } from "@/lib/insights/extractor";
 import { loadSellerKnowledgeForProduct } from "@/lib/knowledge/seller-knowledge";
@@ -160,10 +160,10 @@ export async function getConversationTranscript(input: {
     if (!conversation) return null;
     const metadata = conversation.metadata_json && typeof conversation.metadata_json === "object" ? conversation.metadata_json as Record<string, unknown> : {};
     if (String(metadata.visitor_ref ?? "") !== input.visitorRef) throw new Error("Conversation does not belong to this anonymous visitor, merchant, and product.");
-    const { data: messages } = await supabase.from("messages").select("sender_type,content,fallback_reason,created_at").eq("conversation_id", conversation.id).eq("merchant_id", knowledge.merchant.id).in("sender_type", ["visitor", "assistant"]).order("created_at", { ascending: true });
+    const { data: messages } = await supabase.from("messages").select("sender_type,content,fallback_reason,metadata_json,created_at").eq("conversation_id", conversation.id).eq("merchant_id", knowledge.merchant.id).in("sender_type", ["visitor", "assistant"]).order("created_at", { ascending: true });
     return {
       conversationId: String(conversation.id), productId: String(conversation.product_id), productSlug: input.productSlug, visitorRef: input.visitorRef,
-      messages: (messages ?? []).map((message) => ({ role: message.sender_type === "visitor" ? "user" : "assistant", content: String(message.content), fallbackReason: message.fallback_reason ? String(message.fallback_reason) : null, createdAt: String(message.created_at) })),
+      messages: orderRuntimeHistoryRows(messages ?? []).map((message) => ({ role: message.sender_type === "visitor" ? "user" : "assistant", content: String(message.content), fallbackReason: message.fallback_reason ? String(message.fallback_reason) : null, createdAt: String(message.created_at) })),
       updatedAt: String(conversation.ended_at ?? conversation.started_at),
     };
   }
@@ -195,12 +195,8 @@ export async function getConversationTranscript(input: {
 async function loadConversationHistory(conversationId: string | undefined, merchantId: string): Promise<AgentConversationTurn[]> {
   if (!conversationId) return [];
   if (resolveDataBackend() === "supabase") {
-    const { data } = await createServiceClient().from("messages").select("sender_type,content,fallback_reason,created_at").eq("conversation_id", conversationId).eq("merchant_id", merchantId).in("sender_type", ["visitor", "assistant"]).order("created_at", { ascending: false }).limit(12);
-    return (data ?? []).reverse().map((item) => ({
-      role: item.sender_type === "visitor" ? "user" : "assistant",
-      content: String(item.content),
-      ...(item.fallback_reason ? { fallbackReason: String(item.fallback_reason) } : {}),
-    }));
+    const { data } = await createServiceClient().from("messages").select("sender_type,content,fallback_reason,metadata_json,created_at").eq("conversation_id", conversationId).eq("merchant_id", merchantId).in("sender_type", ["visitor", "assistant"]).order("created_at", { ascending: false }).limit(12);
+    return normalizeRuntimeHistory(data ?? []);
   }
   return loadDatabase().messages
     .filter((item) => item.conversationId === conversationId && (item.role === "assistant" || item.role === "user"))
@@ -231,7 +227,7 @@ function configuredFallbackText(
     : fallbackText(reason, language);
 }
 
-function applyFallbackExperience(
+export function applyFallbackExperience(
   answer: AgentAnswer,
   config: RuntimeAgentConfig,
   history: AgentConversationTurn[],

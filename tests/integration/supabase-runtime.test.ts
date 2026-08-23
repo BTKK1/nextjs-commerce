@@ -104,14 +104,22 @@ describe("Supabase agent runtime", () => {
     serviceClient = createFakeClient([
       { table: "conversations", data: { id: initial.conversationId, product_id: product.id, metadata_json: { visitor_ref: visitorRef } } },
       { table: "visitors", data: { id: "638b1d36-8b33-4dd0-a03b-bfe7b2afc541" } },
-      { table: "messages", data: [{ sender_type: "assistant", content: "Yes, it is warm.", created_at: "2026-08-13T00:00:02Z" }, { sender_type: "visitor", content: "Is this warm?", created_at: "2026-08-13T00:00:01Z" }] },
+      { table: "messages", data: [
+        { sender_type: "assistant", content: "Yes, it is warm.", fallback_reason: "low_confidence", metadata_json: {}, created_at: "2026-08-13T00:00:01Z" },
+        { sender_type: "assistant", content: "Welcome to Nbeh", fallback_reason: null, metadata_json: { welcome: true }, created_at: "2026-08-13T00:00:01Z" },
+        { sender_type: "visitor", content: "Is this warm?", fallback_reason: null, metadata_json: {}, created_at: "2026-08-13T00:00:01Z" },
+      ] },
       { table: "conversations", data: [{ id: initial.conversationId }] },
       { table: "messages", count: 20 },
     ]);
     const continued = await loadSupabaseAgentRuntimeState({ conversationId: initial.conversationId, merchantId, productId: product.id, visitorRef });
     expect(continued.isNewConversation).toBe(false);
     expect(continued.rateLimited).toBe(true);
-    expect(continued.history).toEqual([{ role: "user", content: "Is this warm?" }, { role: "assistant", content: "Yes, it is warm." }]);
+    expect(continued.history).toEqual([
+      { role: "assistant", content: "Welcome to Nbeh" },
+      { role: "user", content: "Is this warm?" },
+      { role: "assistant", content: "Yes, it is warm.", fallbackReason: "low_confidence" },
+    ]);
 
     serviceClient = createFakeClient([
       { functionName: "persist_agent_turn_atomic", data: { insights_created: 0 } },

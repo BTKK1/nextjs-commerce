@@ -3,7 +3,9 @@ import { demoProducts } from "@/data/catalog";
 import { formatTemplate, storeCopy } from "@/components/saleh-demo/store-i18n";
 import { evaluateOutputGuardrails } from "@/lib/agent/guardrails";
 import { evaluateAgentResponse } from "@/lib/agent/evaluator";
-import { areAgentAnswersNearDuplicates, estimateAgentTokenReservation, generateAgentAnswer } from "@/lib/agent/llm-client";
+import { areAgentAnswersNearDuplicates, estimateAgentTokenReservation, generateAgentAnswer, limitAnswerToOneQuestion } from "@/lib/agent/llm-client";
+import { applyFallbackExperience } from "@/lib/agent/chat-service";
+import type { RuntimeAgentConfig } from "@/lib/agent/config-repository";
 import { buildAgentSystemPrompt, buildProductContext } from "@/lib/agent/prompt-builder";
 import { DEFAULT_AGENT_SYSTEM_PROMPT, NON_REMOVABLE_AGENT_GUARDRAILS } from "@/lib/agent/default-prompt";
 import { getModelConfig } from "@/lib/ai/model-config";
@@ -289,6 +291,47 @@ describe("prompt builder and live provider config", () => {
     restoreEnv("OPENROUTER_API_KEY", previousKey);
   });
 
+  it("keeps the useful answer and joins extra follow-up questions into one", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "high-rise-straight-denim")!;
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: "هذا بنطلون High-Rise Straight Denim بقصة مستقيمة وخصر مرتفع. تبيه للاستخدام اليومي؟ ووش مقاسك المعتاد؟" } }],
+      usage: { prompt_tokens: 100, completion_tokens: 30, total_tokens: 130 },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "ابي بنطلون");
+
+    expect(answer.fallbackReason).toBeUndefined();
+    expect(answer.text).toContain("High-Rise Straight Denim");
+    expect(answer.text.match(/[؟?]/g)).toHaveLength(1);
+    expect(answer.providerRoute).toContain("question_limit_guardrail");
+    expect(limitAnswerToOneQuestion("وش استخدامك؟ ووش مقاسك؟", "ar")).toBe("وش استخدامك، ووش مقاسك؟");
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("uses the configured fallback and escalates after a prior fallback", () => {
+    const config = {
+      guardrails: [{ fallback_response_ar: "هالمعلومة مو واضحة عندي حاليًا." }],
+    } as RuntimeAgentConfig;
+    const answer = applyFallbackExperience(
+      { text: "ignored", fallbackReason: "low_confidence", confidence: 0.2, mode: "live", language: "ar" },
+      config,
+      [
+        { role: "assistant", content: "هلا! أنا نبيه." },
+        { role: "user", content: "أبي بنطلون" },
+        { role: "assistant", content: "رد احتياطي", fallbackReason: "low_confidence" },
+      ],
+      "ar",
+      "Atelier Wool Coat",
+    );
+
+    expect(answer.text).toContain("هالمعلومة مو واضحة عندي حاليًا.");
+    expect(answer.text).toContain("Atelier Wool Coat");
+    expect(answer.text).not.toBe("هالمعلومة مو واضحة عندي حاليًا.");
+  });
+
   it("repairs a numerical compatibility mismatch into an explicit rejection", async () => {
     const previousKey = process.env.OPENROUTER_API_KEY;
     process.env.OPENROUTER_API_KEY = "test-openrouter-key";
@@ -352,6 +395,29 @@ describe("prompt builder and live provider config", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(answer.text).toContain("daily commute");
     expect(areAgentAnswersNearDuplicates(answer.text, repeated)).toBe(false);
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("never turns repeated purchase intent into a low-confidence wall", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "high-rise-straight-denim")!;
+    const repeated = "تمام، تقدر تختار المقاس المناسب وتكمل الطلب من الصفحة.";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: repeated } }],
+      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "ابي اشتري", undefined, undefined, [
+      { role: "user", content: "كيف أطلبه؟" },
+      { role: "assistant", content: repeated },
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(answer.fallbackReason).toBeUndefined();
+    expect(answer.text).toContain("إضافة للسلة");
+    expect(answer.providerRoute).toContain("purchase_intent_guardrail");
     restoreEnv("OPENROUTER_API_KEY", previousKey);
   });
 

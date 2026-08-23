@@ -34,6 +34,36 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+export interface RuntimeHistoryRow {
+  sender_type: string;
+  content: unknown;
+  fallback_reason?: unknown;
+  metadata_json?: unknown;
+  created_at?: unknown;
+}
+
+function historyRowRank(row: RuntimeHistoryRow): number {
+  if (record(row.metadata_json).welcome === true) return 0;
+  return row.sender_type === "visitor" ? 1 : 2;
+}
+
+export function orderRuntimeHistoryRows<T extends RuntimeHistoryRow>(rows: T[]): T[] {
+  return [...rows].sort((left, right) => {
+      const timeDifference = Date.parse(String(left.created_at ?? "")) - Date.parse(String(right.created_at ?? ""));
+      if (Number.isFinite(timeDifference) && timeDifference !== 0) return timeDifference;
+      return historyRowRank(left) - historyRowRank(right);
+    });
+}
+
+export function normalizeRuntimeHistory(rows: RuntimeHistoryRow[]): AgentConversationTurn[] {
+  return orderRuntimeHistoryRows(rows)
+    .map((item) => ({
+      role: item.sender_type === "visitor" ? "user" as const : "assistant" as const,
+      content: String(item.content),
+      ...(item.fallback_reason ? { fallbackReason: String(item.fallback_reason) } : {}),
+    }));
+}
+
 export interface SupabaseAgentRuntimeState {
   conversationId: string;
   isNewConversation: boolean;
@@ -95,7 +125,7 @@ export async function loadSupabaseAgentRuntimeState(input: {
   }
 
   const historyPromise = conversation
-    ? supabase.from("messages").select("sender_type,content,fallback_reason,created_at").eq("conversation_id", conversationId).eq("merchant_id", input.merchantId).in("sender_type", ["visitor", "assistant"]).order("created_at", { ascending: false }).limit(12)
+    ? supabase.from("messages").select("sender_type,content,fallback_reason,metadata_json,created_at").eq("conversation_id", conversationId).eq("merchant_id", input.merchantId).in("sender_type", ["visitor", "assistant"]).order("created_at", { ascending: false }).limit(12)
     : Promise.resolve({ data: [], error: null });
 
   let rateLimited = fingerprintLimit ? !fingerprintLimit.allowed : false;
@@ -127,11 +157,7 @@ export async function loadSupabaseAgentRuntimeState(input: {
   return {
     conversationId,
     isNewConversation: !conversation,
-    history: (historyRows ?? []).reverse().map((item) => ({
-      role: item.sender_type === "visitor" ? "user" as const : "assistant" as const,
-      content: String(item.content),
-      ...(item.fallback_reason ? { fallbackReason: String(item.fallback_reason) } : {}),
-    })),
+    history: normalizeRuntimeHistory(historyRows ?? []),
     rateLimited,
     retryAfterSeconds: rateLimited ? Math.max(1, fingerprintLimit?.retryAfterSeconds ?? 60) : undefined,
   };

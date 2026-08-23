@@ -476,6 +476,32 @@ function cleanCustomerFacingText(text: string): string {
   return `${(compact || cleaned).slice(0, 560).replace(/\s+\S*$/, "").trim()}…`;
 }
 
+/**
+ * Keep a useful model answer when it asks more than one follow-up. Nbeh's
+ * product policy allows one question, so join earlier question clauses into
+ * the final question instead of replacing the entire answer with a fallback.
+ */
+export function limitAnswerToOneQuestion(text: string, language: "ar" | "en"): string {
+  const questionMarks = [...text.matchAll(/[؟?]/g)];
+  if (questionMarks.length <= 1) return text;
+  const finalQuestionIndex = questionMarks.at(-1)?.index ?? -1;
+  const separator = language === "ar" ? "،" : ",";
+  return text
+    .replace(/[؟?]/g, (character, offset) => offset === finalQuestionIndex ? character : separator)
+    .replace(/\s+([،,])/g, "$1");
+}
+
+function isDirectPurchaseIntent(message: string): boolean {
+  return /\b(?:buy|purchase|checkout|order)\b|(?:أ|ا)?بي\s+(?:أ|ا)?شتري|(?:أ|ا)?بغى\s+(?:أ|ا)?شتري|(?:أ|ا)?ريد\s+(?:أ|ا)?شتري/.test(message.toLowerCase());
+}
+
+function deterministicPurchaseIntentAnswer(product: DemoProduct, language: "ar" | "en"): string {
+  if (language === "ar") {
+    return `تمام، إذا ${product.arabicName || product.name} مناسب لك اختَر الخيار اللي يناسبك من الصفحة واضغط إضافة للسلة لإكمال الطلب.`;
+  }
+  return `If ${product.name} suits you, choose your preferred option on the product page and use Add to cart to continue.`;
+}
+
 async function callProvider(
   route: ProductAgentRoute,
   product: DemoProduct,
@@ -727,7 +753,29 @@ export async function generateAgentAnswer(
       if (detectedObjection && objectionGuidanceApplied) {
         finalText = deterministicObjectionGuidance(product, message, finalText, language, detectedObjection);
       }
+      const questionLimitedText = limitAnswerToOneQuestion(finalText, language);
+      const questionLimitApplied = questionLimitedText !== finalText;
+      finalText = questionLimitedText;
       if (previousAssistantAnswer && areAgentAnswersNearDuplicates(finalText, previousAssistantAnswer)) {
+        if (isDirectPurchaseIntent(message)) {
+          return {
+            text: deterministicPurchaseIntentAnswer(product, language),
+            confidence: 0.9,
+            mode: "live",
+            language,
+            provider: route.provider,
+            model: route.model,
+            providerRoute: `${routeLabel(attempts)}->purchase_intent_guardrail`,
+            promptVersion: runtimeConfig ? `merchant-v${runtimeConfig.versionNumber}` : PRODUCT_AGENT_PROMPT_VERSION,
+            promptTokens: hasTokenUsage ? totalPromptTokens : finalResult.promptTokens,
+            completionTokens: hasTokenUsage ? totalCompletionTokens : finalResult.completionTokens,
+            totalTokens: hasTokenUsage ? totalTokens : finalResult.totalTokens,
+            estimatedCost: hasCost ? totalCost : finalResult.estimatedCost,
+            latencyMs: totalLatencyMs,
+            errorCode: null,
+            errorMessage: null,
+          };
+        }
         return {
           text: fallbackText("low_confidence", language),
           fallbackReason: "low_confidence",
@@ -777,7 +825,7 @@ export async function generateAgentAnswer(
         language,
         provider: route.provider,
         model: route.model,
-        providerRoute: `${routeLabel(attempts)}${compatibilityGuardrailApplied ? "->compatibility_guardrail" : ""}${priceGroundingApplied ? "->price_grounding_guardrail" : ""}${objectionGuidanceApplied ? "->objection_guidance_guardrail" : ""}`,
+        providerRoute: `${routeLabel(attempts)}${compatibilityGuardrailApplied ? "->compatibility_guardrail" : ""}${priceGroundingApplied ? "->price_grounding_guardrail" : ""}${objectionGuidanceApplied ? "->objection_guidance_guardrail" : ""}${questionLimitApplied ? "->question_limit_guardrail" : ""}`,
         promptVersion: runtimeConfig ? `merchant-v${runtimeConfig.versionNumber}` : PRODUCT_AGENT_PROMPT_VERSION,
         promptTokens: hasTokenUsage ? totalPromptTokens : finalResult.promptTokens,
         completionTokens: hasTokenUsage ? totalCompletionTokens : finalResult.completionTokens,
