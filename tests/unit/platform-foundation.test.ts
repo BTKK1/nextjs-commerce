@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getCatalogProvider, listCatalogProviders } from "@/lib/catalog";
 import { buildAuthorizationUrl, extractWebhookStoreId, getProviderReadiness, isSameOriginMutation, summarizeWebhookPayload, verifyWebhookSignature, verifyZidWebhookAuthorization, webhookEventKey } from "@/lib/integrations/registry";
-import { normalizeSallaStoreProfile } from "@/lib/integrations/salla-client";
+import { fetchSallaJson, normalizeSallaStoreProfile } from "@/lib/integrations/salla-client";
+import { sealSallaCredentials } from "@/lib/integrations/salla-credentials";
 import { openZidCredentials, sealZidCredentials, type ZidCredentials } from "@/lib/integrations/zid-credentials";
 import { getSellerKnowledgeForProduct } from "@/lib/knowledge/seller-knowledge";
 import { createSeedDatabase } from "@/lib/storage/seed";
@@ -32,6 +33,26 @@ describe("merchant-installable platform foundation", () => {
       url: "https://demostore.salla.sa",
       allowedOrigins: ["https://demostore.salla.sa"],
     });
+  });
+
+  it("canonicalizes Salla's lowercase Easy Mode bearer token for API requests", async () => {
+    vi.stubEnv("INTEGRATION_STATE_SECRET", "test-only-integration-secret");
+    const request = vi.fn().mockResolvedValue(Response.json({ data: { id: 1177638915 } }));
+    vi.stubGlobal("fetch", request);
+    const credentialRef = sealSallaCredentials({
+      accessToken: "easy-mode-access-token",
+      refreshToken: null,
+      expiresAt: null,
+      scope: "settings.read products.read",
+      tokenType: "bearer",
+    });
+
+    await fetchSallaJson(credentialRef, "https://accounts.salla.sa/oauth2/user/info");
+
+    expect(request).toHaveBeenCalledOnce();
+    const [, requestInit] = request.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(requestInit.headers).get("authorization")).toBe("Bearer easy-mode-access-token");
+    vi.unstubAllGlobals();
   });
 
   it("publishes explicit provider capabilities without pretending Salla or Zid is connected", () => {

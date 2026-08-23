@@ -112,7 +112,9 @@ export async function fetchSallaJson(
       ...init,
       headers: {
         Accept: "application/json",
-        Authorization: `${credentials.tokenType || "Bearer"} ${credentials.accessToken}`,
+        // Salla's Easy Mode payload documents token_type as lowercase
+        // "bearer", but its Merchant API expects the canonical scheme.
+        Authorization: `Bearer ${credentials.accessToken}`,
         ...init.headers,
       },
       cache: "no-store",
