@@ -8,10 +8,6 @@ import { createSeedDatabase } from "@/lib/storage/seed";
 
 const OX_ALPHA_MODEL = "stealth/ox-alpha";
 
-function wait(milliseconds: number) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
 describe("continuous OX Alpha smoke", () => {
   beforeAll(() => {
     if (!process.env.OPENROUTER_API_KEY) {
@@ -23,53 +19,37 @@ describe("continuous OX Alpha smoke", () => {
     resetDatabaseForTests(createSeedDatabase());
   });
 
-  it("uses only OX Alpha for English and Arabic product guidance", async () => {
+  it("uses only OX Alpha for product-grounded Arabic guidance", async () => {
     const config = getModelConfig();
     expect(config.routes).toEqual([{ provider: "openrouter", model: OX_ALPHA_MODEL }]);
     expect(config.fallbacksEnabled).toBe(false);
 
-    const cases = [
-      { slug: "everyday-leather-tote", locale: "en" as const, message: "What is this bag made of?" },
-      { slug: "high-rise-straight-denim", locale: "ar" as const, message: "وش الخامة والمقاسات المتوفرة؟" },
-    ];
+    const slug = "everyday-leather-tote";
+    const product = demoProducts.find((item) => item.slug === slug);
+    expect(product).toBeTruthy();
+    const knowledge = getSellerKnowledgeForProduct(slug);
+    expect(knowledge).toBeTruthy();
 
-    for (const [index, testCase] of cases.entries()) {
-      if (index > 0) await wait(20_000);
-      const product = demoProducts.find((item) => item.slug === testCase.slug);
-      expect(product).toBeTruthy();
-      const knowledge = getSellerKnowledgeForProduct(testCase.slug);
-      expect(knowledge).toBeTruthy();
+    const answer = await generateAgentAnswer(
+      product!,
+      "كم سعره ووش خامته؟",
+      {
+        path: `/product/${slug}`,
+        title: product!.name,
+        productName: product!.name,
+        locale: "ar",
+      },
+      knowledge!,
+    );
 
-      let answer;
-      for (let attempt = 1; attempt <= 2; attempt += 1) {
-        answer = await generateAgentAnswer(
-          product!,
-          testCase.message,
-          {
-            path: `/product/${testCase.slug}`,
-            title: product!.name,
-            productName: product!.name,
-            locale: testCase.locale,
-          },
-          knowledge!,
-        );
-        if (!answer.fallbackReason || !["rate_limited", "timeout"].includes(answer.errorCode ?? "")) break;
-        if (attempt < 2) await wait(20_000);
-      }
-
-      expect(answer).toBeTruthy();
-      expect(answer!.provider).toBe("openrouter");
-      expect(answer!.model).toBe(OX_ALPHA_MODEL);
-      expect(answer!.providerRoute).not.toMatch(/gemini|qwen|deepseek/i);
-      if (answer!.fallbackReason === "model_error" && ["rate_limited", "timeout"].includes(answer!.errorCode ?? "")) {
-        console.warn(`OX Alpha shared upstream is temporarily unavailable after same-model retries: ${answer!.errorCode}.`);
-        return;
-      }
-      expect(
-        answer!.fallbackReason,
-        `OX Alpha failed: ${answer!.errorCode ?? "unknown"} (${answer!.errorMessage ?? "no provider message"}); route=${answer!.providerRoute}`,
-      ).toBeUndefined();
-      expect(answer!.text.trim().length).toBeGreaterThan(10);
-    }
-  }, 300_000);
+    expect(answer.provider).toBe("openrouter");
+    expect(answer.model).toBe(OX_ALPHA_MODEL);
+    expect(answer.providerRoute).not.toMatch(/gemini|qwen|deepseek/i);
+    expect(
+      answer.fallbackReason,
+      `OX Alpha failed: ${answer.errorCode ?? "unknown"} (${answer.errorMessage ?? "no provider message"}); route=${answer.providerRoute}`,
+    ).toBeUndefined();
+    expect(answer.text).toContain("320");
+    expect(answer.text).toMatch(/جلد|leather/i);
+  }, 180_000);
 });

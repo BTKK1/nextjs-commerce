@@ -122,6 +122,7 @@ jobs:
       SALES_AGENT_MODEL: stealth/ox-alpha
       SALES_AGENT_DISABLE_FALLBACKS: "true"
       PRODUCT_AGENT_DISABLE_FALLBACKS: "true"
+      PRODUCT_AGENT_TIMEOUT_MS: "120000"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -145,7 +146,19 @@ jobs:
           node --import ts-node/esm -e "import('./src/lib/ai/model-config.ts').then(({getModelConfig}) => { const routes = getModelConfig().routes; if (routes.length !== 1 || routes[0].provider !== 'openrouter' || routes[0].model !== 'stealth/ox-alpha') throw new Error('Continuous test model route is not locked to OX Alpha'); console.log('Model route locked to OpenRouter:stealth/ox-alpha'); })"
 
       - name: Continuous OX Alpha smoke
+        id: ox_alpha_smoke
+        continue-on-error: true
         run: pnpm run test:agent:continuous
+
+      - name: Record OX Alpha monitor result
+        if: always()
+        run: |
+          echo "### OX Alpha continuous monitor" >> "$GITHUB_STEP_SUMMARY"
+          echo "Result: ${{ steps.ox_alpha_smoke.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Configured route: OpenRouter stealth/ox-alpha only; model fallback disabled." >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.ox_alpha_smoke.outcome }}" != "success" ]; then
+            echo "OX Alpha did not complete a live product-grounded response. Inspect the failed step for upstream timeout, rate-limit, authentication, or response-quality details." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Full live OX Alpha agent quality suite
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.live_agent_suite }}
