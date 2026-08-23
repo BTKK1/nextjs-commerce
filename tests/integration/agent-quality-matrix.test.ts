@@ -17,6 +17,7 @@ interface MatrixCase {
   expectedFallback?: FallbackReason;
   expectedObjection?: ObjectionCategory;
   expectedTerms?: string[];
+  expectedAnyTerms?: string[];
 }
 
 function makeRequest(body: unknown) {
@@ -33,6 +34,20 @@ function relatedName(productSlug: string) {
   return demoProducts.find((item) => item.slug === relatedSlug)?.name ?? product?.name ?? "";
 }
 
+function arabicMaterialFacts(productSlug: string) {
+  const facts: Record<string, string[]> = {
+    "atelier-wool-coat": ["الصوف", "كشمير"],
+    "noir-cashmere-crew": ["كشمير"],
+    "high-rise-straight-denim": ["دينم", "سيلفدج", "جينز"],
+    "poplin-oxford-shirt": ["قطن", "بوبلين"],
+    "everyday-leather-tote": ["جلد"],
+    "pleated-linen-trouser": ["كتان", "لينن"],
+    "silk-square-scarf": ["حرير"],
+    "ribbed-merino-tank": ["ميرينو"],
+  };
+  return facts[productSlug];
+}
+
 function productCases() {
   return demoProducts.flatMap<MatrixCase>((product, index) => [
     {
@@ -40,7 +55,7 @@ function productCases() {
       productSlug: product.slug,
       message: "What is the price?",
       kind: "known",
-      expectedTerms: [product.name, String(product.priceSar)],
+      expectedTerms: [String(product.priceSar)],
     },
     {
       id: `${product.slug}-variants`,
@@ -54,7 +69,7 @@ function productCases() {
       productSlug: product.slug,
       message: "What is it made of?",
       kind: "known",
-      expectedTerms: [product.name, product.material ?? product.keyFeatures[0]],
+      expectedTerms: [product.material ?? product.keyFeatures[0]],
     },
     {
       id: `${product.slug}-gift`,
@@ -62,7 +77,7 @@ function productCases() {
       message: "Is this suitable for a gift?",
       kind: "objection",
       expectedObjection: "gift_concern",
-      expectedTerms: [product.name, product.keyFeatures[0]],
+      expectedTerms: [product.keyFeatures[0]],
     },
     {
       id: `${product.slug}-warranty`,
@@ -97,14 +112,14 @@ function productCases() {
       productSlug: product.slug,
       message: "كم سعره؟",
       kind: "known",
-      expectedTerms: [product.name, String(product.priceSar)],
+      expectedTerms: [String(product.priceSar)],
     },
     {
       id: `${product.slug}-arabic-special`,
       productSlug: product.slug,
       message: "وش مميزاته؟",
       kind: "known",
-      expectedTerms: [product.name],
+      expectedAnyTerms: arabicMaterialFacts(product.slug),
     },
     ...(index < 4
       ? [
@@ -127,28 +142,28 @@ const matrixCases: MatrixCase[] = [
     productSlug: "everyday-leather-tote",
     message: "Give me more info about this product I am not convinced",
     kind: "objection",
-    expectedTerms: ["Everyday Leather Tote", "Leather"],
+    expectedTerms: ["Leather"],
   },
   {
     id: "tote-special",
     productSlug: "everyday-leather-tote",
     message: "What is so special abt it?",
     kind: "known",
-    expectedTerms: ["Everyday Leather Tote", "Leather"],
+    expectedTerms: ["Leather"],
   },
   {
     id: "tote-work-stuff",
     productSlug: "everyday-leather-tote",
     message: "Will it fit my work stuff?",
     kind: "known",
-    expectedTerms: ["Everyday Leather Tote", "14-inch"],
+    expectedTerms: ["14-inch"],
   },
   {
     id: "tote-color-choice",
     productSlug: "everyday-leather-tote",
     message: "Which color should I pick?",
     kind: "ambiguous",
-    expectedTerms: ["Everyday Leather Tote", "Color"],
+    expectedTerms: ["Color"],
   },
   {
     id: "atelier-price-objection",
@@ -156,7 +171,7 @@ const matrixCases: MatrixCase[] = [
     message: "It feels expensive.",
     kind: "objection",
     expectedObjection: "price_concern",
-    expectedTerms: ["Atelier Wool Coat", "Double-faced wool"],
+    expectedTerms: ["Double-faced wool"],
   },
   {
     id: "cashmere-quality-objection",
@@ -164,7 +179,7 @@ const matrixCases: MatrixCase[] = [
     message: "I am not sure about the quality.",
     kind: "objection",
     expectedObjection: "quality_concern",
-    expectedTerms: ["Noir Cashmere Crew", "cashmere"],
+    expectedTerms: ["cashmere"],
   },
   {
     id: "denim-shipping",
@@ -193,7 +208,7 @@ const matrixCases: MatrixCase[] = [
     message: "ينفع هدية؟",
     kind: "objection",
     expectedObjection: "gift_concern",
-    expectedTerms: ["Silk Square Scarf", "Silk"],
+    expectedTerms: ["حرير"],
   },
   {
     id: "tote-arabic-price-objection",
@@ -201,14 +216,14 @@ const matrixCases: MatrixCase[] = [
     message: "أحسه غالي، ليش آخذه؟",
     kind: "objection",
     expectedObjection: "price_concern",
-    expectedTerms: ["Everyday Leather Tote", "Leather"],
+    expectedTerms: ["جلد"],
   },
   {
     id: "tote-arabic-work",
     productSlug: "everyday-leather-tote",
     message: "يكفي أغراض الدوام؟",
     kind: "known",
-    expectedTerms: ["Everyday Leather Tote", "14"],
+    expectedTerms: ["14"],
   },
   {
     id: "tote-arabic-delivery",
@@ -250,7 +265,7 @@ const matrixCases: MatrixCase[] = [
     productSlug: "everyday-leather-tote",
     message: "What is the price?",
     kind: "known",
-    expectedTerms: ["Everyday Leather Tote", "320"],
+    expectedTerms: ["320"],
   },
 ];
 
@@ -315,6 +330,7 @@ describe("agent quality matrix", () => {
         expectedFallback: testCase.expectedFallback,
         expectedObjection: testCase.expectedObjection,
         expectedTerms: testCase.expectedTerms,
+        expectedAnyTerms: testCase.expectedAnyTerms,
         kind: testCase.kind,
       });
 

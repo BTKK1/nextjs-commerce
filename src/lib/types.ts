@@ -7,7 +7,8 @@ export type FallbackReason =
   | "unsafe_request"
   | "low_confidence"
   | "model_error"
-  | "rate_limited";
+  | "rate_limited"
+  | "quota_exhausted";
 
 export type ObjectionCategory =
   | "price_concern"
@@ -22,7 +23,8 @@ export type InsightType =
   | "repeated_question"
   | "objection"
   | "weak_description"
-  | "unknown_answer";
+  | "unknown_answer"
+  | "answer_quality";
 
 export type AnalyticsEventType =
   | "widget_impression"
@@ -60,8 +62,11 @@ export interface ProductObjection {
   response: string;
 }
 
-export interface DemoProduct {
+export interface CatalogProduct {
   id: string;
+  merchantId?: string;
+  externalId?: string | null;
+  platform?: PlatformProvider;
   slug: string;
   name: string;
   arabicName: string;
@@ -92,8 +97,13 @@ export interface DemoProduct {
   crossSellProductSlugs: string[];
 }
 
+/** @deprecated The pilot storefront still imports this alias. Platform code should use CatalogProduct. */
+export type DemoProduct = CatalogProduct;
+
 export interface Merchant {
   id: string;
+  publicKey?: string;
+  allowedWidgetOrigins?: string[];
   name: string;
   arabicName: string;
   industry: string;
@@ -103,6 +113,7 @@ export interface Merchant {
 
 export interface Visitor {
   id: string;
+  merchantId?: string;
   anonymousRef: string;
   firstSeenAt: string;
   lastSeenAt: string;
@@ -119,6 +130,8 @@ export interface Conversation {
   updatedAt: string;
   fallbackReason?: FallbackReason | null;
   detectedObjection?: ObjectionCategory | null;
+  language?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Message {
@@ -129,6 +142,13 @@ export interface Message {
   createdAt: string;
   fallbackReason?: FallbackReason | null;
   qualityRating?: number;
+  language?: string | null;
+  model?: string | null;
+  provider?: string | null;
+  tokenUsage?: Record<string, unknown>;
+  latencyMs?: number | null;
+  safetyFlags?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Insight {
@@ -143,6 +163,8 @@ export interface Insight {
   count: number;
   createdAt: string;
   updatedAt: string;
+  severity?: "low" | "medium" | "high" | "critical";
+  status?: "open" | "reviewed" | "resolved" | "ignored";
 }
 
 export interface InsightSource {
@@ -156,10 +178,20 @@ export interface InsightSource {
 export interface DashboardSettings {
   id: string;
   merchantId: string;
-  agentTone: "neutral_english";
+  agentTone: "neutral_saudi";
   retentionDays: number;
   demoMode: boolean;
   updatedAt: string;
+  refreshInterval?: string;
+  widgetOnboardingMessageAr?: string;
+  widgetOnboardingMessageEn?: string;
+  widgetPositionAr?: "left" | "right";
+  widgetPositionEn?: "left" | "right";
+    widgetAutoPopupEnabled?: boolean;
+    widgetAutoPopupDelaySeconds?: number;
+  widgetTeaserMessageAr?: string;
+  widgetTeaserMessageEn?: string;
+  monthlyTokenAllowance?: number;
 }
 
 export interface Guardrail {
@@ -174,9 +206,13 @@ export interface PlatformIntegration {
   id: string;
   merchantId: string;
   provider: PlatformProvider;
-  status: "connected" | "not_connected_demo" | "disabled";
+  status: "connected" | "not_connected_demo" | "pending" | "disabled" | "error";
   connectedAt: string | null;
   notes: string;
+  scopes?: string[];
+  externalStoreId?: string | null;
+  lastSyncedAt?: string | null;
+  connectionReadiness?: "ready" | "credentials_required" | "approval_required" | "connected";
 }
 
 export interface SyncJob {
@@ -187,6 +223,9 @@ export interface SyncJob {
   startedAt: string;
   finishedAt: string | null;
   notes: string;
+  resource?: string;
+  recordsProcessed?: number;
+  error?: string | null;
 }
 
 export interface WebhookEvent {
@@ -197,6 +236,7 @@ export interface WebhookEvent {
   receivedAt: string;
   processedAt: string | null;
   payloadSummary: string;
+  status?: "received" | "processed" | "failed" | "ignored";
 }
 
 export interface ConfigVersion {
@@ -269,6 +309,7 @@ export interface AgentAnswer {
 export interface AgentConversationTurn {
   role: "assistant" | "user";
   content: string;
+  fallbackReason?: string | null;
 }
 
 export interface AgentPageContext {

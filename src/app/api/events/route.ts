@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { trackAnalyticsEvent } from "@/lib/analytics/events";
-import { getSellerKnowledgeForProduct } from "@/lib/knowledge/seller-knowledge";
-import { persistDemoSnapshotToSupabase } from "@/lib/storage/supabase-store";
+import { createAnalyticsEvent, trackAnalyticsEvent } from "@/lib/analytics/events";
+import { resolveDataBackend } from "@/lib/backend/mode";
+import { loadSellerKnowledgeForProduct } from "@/lib/knowledge/seller-knowledge";
+import { persistAnalyticsEventToSupabase } from "@/lib/storage/supabase-store";
 import type { AnalyticsEventType } from "@/lib/types";
+import { WIDGET_MERCHANT_KEY_PATTERN } from "@/lib/widget/identity";
 
 export const dynamic = "force-dynamic";
 
 const visitorRefSchema = z.string().regex(/^anon-[a-zA-Z0-9-]{4,64}$/, "visitorRef must be an anonymous visitor reference");
 
 const schema = z.object({
+  merchantKey: z.string().regex(WIDGET_MERCHANT_KEY_PATTERN).optional(),
   type: z.enum([
     "widget_impression",
     "chat_opened",
@@ -30,20 +33,30 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const payload = schema.parse(await request.json());
-    const product = getSellerKnowledgeForProduct(payload.productSlug)?.currentProduct;
-    if (!product) {
+    const knowledge = await loadSellerKnowledgeForProduct(payload.productSlug, payload.merchantKey);
+    if (!knowledge) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
-    const event = trackAnalyticsEvent({
+    const product = knowledge.currentProduct;
+    const eventInput = {
       type: payload.type as AnalyticsEventType,
       product,
       visitorRef: payload.visitorRef,
-      storefrontLocale: payload.locale
-    });
-    await persistDemoSnapshotToSupabase();
+      storefrontLocale: payload.locale,
+      merchantId: knowledge.merchant.id,
+    };
+    const event = resolveDataBackend() === "local"
+      ? trackAnalyticsEvent(eventInput)
+      : createAnalyticsEvent(eventInput);
+    const persisted = await persistAnalyticsEventToSupabase(event, { merchantId: knowledge.merchant.id, merchantName: knowledge.merchant.name, merchantPublicKey: knowledge.merchant.publicKey, provider: knowledge.provider, product });
+    if (resolveDataBackend() === "supabase" && (!persisted.enabled || !persisted.ok)) {
+      throw new Error("Supabase analytics persistence failed.");
+    }
     return NextResponse.json({ ok: true, eventId: event.id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid event request";
-    return NextResponse.json({ error: message }, { status: 400 });
+    if (error instanceof z.ZodError || error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid event request" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Event tracking is temporarily unavailable" }, { status: 503 });
   }
 }

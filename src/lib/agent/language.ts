@@ -5,22 +5,26 @@ export function detectLanguage(message: string): "ar" | "en" {
 export function fallbackText(reason: string, language: "ar" | "en"): string {
   if (language === "ar") {
     if (reason === "out_of_scope") {
-      return "أقدر أساعدك بتفاصيل هذا المنتج أو مقارنته بمنتجات المتجر. هذا الطلب خارج نطاق معلومات المنتج التجريبية.";
+      return "أقدر أساعدك بالمنتج أو أقارنه لك بخيارات المتجر، لكن هالطلب خارج المعلومات المتوفرة عندي.";
     }
 
     if (reason === "unsafe_request") {
-      return "ما أقدر أساعد في هذا الطلب. أقدر أجاوبك عن المنتج، الاستخدام، العناية، السعر الظاهر، أو الخيارات المتاحة.";
+      return "ما أقدر أساعد بهالطلب. أقدر أفيدك بالمنتج، استخدامه، سعره، أو الخيارات المتاحة.";
     }
 
     if (reason === "rate_limited") {
-      return "وصلنا لعدد رسائل عالي بسرعة. جرّب مرة ثانية بعد لحظات، وبقدر أساعدك بتفاصيل المنتج.";
+      return "الرسائل جت بسرعة شوي. جرّب بعد لحظات ونكمل من نفس النقطة.";
+    }
+
+    if (reason === "quota_exhausted") {
+      return "نبيه غير متاح حاليًا في هالمتجر. جرّب مرة ثانية لاحقًا.";
     }
 
     if (reason === "low_confidence") {
-      return "اكتب سؤالك عن المنتج، المقاس، اللون، الخامة، أو العناية عشان أقدر أساعدك.";
+      return "وش حاب تعرف عن المنتج؟ اسألني عن المقاس، الخامة، السعر، أو استخدامه.";
     }
 
-    return "ما عندي هذه المعلومة في بيانات المنتج التجريبية. الأفضل تتأكد من التاجر أو من تفاصيل المنتج قبل الشراء.";
+    return "هالمعلومة مو واضحة عندي حاليًا، وما أبي أعطيك شيء غير دقيق. الأفضل نتأكد منها من المتجر.";
   }
 
   if (reason === "out_of_scope") {
@@ -33,6 +37,10 @@ export function fallbackText(reason: string, language: "ar" | "en"): string {
 
   if (reason === "rate_limited") {
     return "This visitor is sending messages too quickly. Please try again in a moment and I can continue with product details.";
+  }
+
+  if (reason === "quota_exhausted") {
+    return "Nbeh is temporarily unavailable in this store. Please try again later.";
   }
 
   if (reason === "low_confidence") {

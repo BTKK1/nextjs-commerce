@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, Lock } from "lucide-react";
+import { Check, ShieldCheck } from "lucide-react";
 import {
   clearDemoBag,
   getDemoBagSubtotal,
@@ -10,6 +10,9 @@ import {
 } from "@/lib/demo-bag";
 import { formatMoney } from "@/data/catalog";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { StoreSelect } from "@/components/saleh-demo/StoreSelect";
+
+const countries = ["United States", "Canada", "United Kingdom", "France", "Germany", "Japan"] as const;
 
 export function DemoCheckoutPage() {
   const [items, setItems] = useState<DemoBagItem[] | null>(null);
@@ -49,7 +52,7 @@ export function DemoCheckoutPage() {
             Order <span className="font-semibold tabular-nums text-ink">{placed.number}</span> is confirmed.
             A demo receipt is on its way to <span className="text-ink">{placed.email}</span>.
           </p>
-          <Link href="/#collection" className="mt-10 inline-flex border-b border-ink pb-1 text-sm font-semibold uppercase tracking-[0.2em] hover:text-[#7d623f]">
+          <Link href="/store#collection" className="mt-10 inline-flex border-b border-ink pb-1 text-sm font-semibold uppercase tracking-[0.2em] hover:text-[#7d623f]">
             Continue shopping
           </Link>
         </div>
@@ -71,7 +74,7 @@ export function DemoCheckoutPage() {
       <main className="min-h-screen bg-[#faf8f3] px-4 py-20 text-center text-ink">
         <h1 className="text-4xl font-semibold">Your bag is empty</h1>
         <p className="mt-3 text-stone-600">Add something you love before checking out.</p>
-        <Link href="/#collection" className="mt-8 inline-flex border-b border-ink pb-1 text-sm font-semibold uppercase tracking-[0.2em] hover:text-[#7d623f]">
+        <Link href="/store#collection" className="mt-8 inline-flex border-b border-ink pb-1 text-sm font-semibold uppercase tracking-[0.2em] hover:text-[#7d623f]">
           Browse the collection
         </Link>
       </main>
@@ -109,31 +112,18 @@ export function DemoCheckoutPage() {
               <div className="grid gap-4 md:grid-cols-3">
                 <Field label="City" required />
                 <Field label="Postal code" required />
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Country</span>
-                  <select className="mt-2 w-full border-b border-stone-300 bg-transparent py-3 outline-none focus:border-ink" defaultValue="United States">
-                    <option>United States</option>
-                    <option>Canada</option>
-                    <option>United Kingdom</option>
-                    <option>France</option>
-                    <option>Germany</option>
-                    <option>Japan</option>
-                  </select>
-                </label>
+                <StoreSelect label="Country" name="country" defaultValue="United States" options={countries} />
               </div>
             </section>
 
-            <section className="space-y-4">
-              <h2 className="text-2xl font-semibold">Payment</h2>
-              <p className="flex items-center gap-2 text-xs text-stone-500">
-                <Lock className="h-3 w-3" aria-hidden="true" />
-                Secure payment demo. No card is charged.
+            <section className="rounded-md border border-emerald-200 bg-emerald-50 p-5">
+              <h2 className="flex items-center gap-2 text-xl font-semibold text-emerald-950">
+                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                Payment-free demo order
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-emerald-900">
+                This showcase never asks for or stores card details. Placing the order only confirms the local demo bag.
               </p>
-              <Field label="Card number" placeholder="4242 4242 4242 4242" required />
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Expiry (MM/YY)" placeholder="12/28" required />
-                <Field label="CVC" placeholder="123" required />
-              </div>
             </section>
 
             <button

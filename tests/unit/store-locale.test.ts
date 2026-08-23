@@ -3,29 +3,29 @@ import { getLanguageRoutes, localeFromStorePath, localizeStorePath, stripStoreLo
 
 describe("store locale routing", () => {
   it("derives the active store locale from the route prefix", () => {
-    expect(localeFromStorePath("/")).toBe("en");
-    expect(localeFromStorePath("/product/everyday-leather-tote")).toBe("en");
-    expect(localeFromStorePath("/ar")).toBe("ar");
-    expect(localeFromStorePath("/ar/product/everyday-leather-tote")).toBe("ar");
+    expect(localeFromStorePath("/store")).toBe("en");
+    expect(localeFromStorePath("/store/product/everyday-leather-tote")).toBe("en");
+    expect(localeFromStorePath("/ar/store")).toBe("ar");
+    expect(localeFromStorePath("/ar/store/product/everyday-leather-tote")).toBe("ar");
   });
 
   it("strips and reapplies the Arabic route prefix without changing the product path", () => {
-    expect(stripStoreLocalePrefix("/ar/product/everyday-leather-tote")).toBe("/product/everyday-leather-tote");
-    expect(localizeStorePath("/product/everyday-leather-tote", "ar")).toBe("/ar/product/everyday-leather-tote");
-    expect(localizeStorePath("/ar/product/everyday-leather-tote", "en")).toBe("/product/everyday-leather-tote");
-    expect(localizeStorePath("/#collection", "ar")).toBe("/ar#collection");
+    expect(stripStoreLocalePrefix("/ar/store/product/everyday-leather-tote")).toBe("/store/product/everyday-leather-tote");
+    expect(localizeStorePath("/product/everyday-leather-tote", "ar")).toBe("/ar/store/product/everyday-leather-tote");
+    expect(localizeStorePath("/ar/store/product/everyday-leather-tote", "en")).toBe("/store/product/everyday-leather-tote");
+    expect(localizeStorePath("/#collection", "ar")).toBe("/ar/store#collection");
   });
 
   it("computes Ting-style language switch routes from the active pathname", () => {
-    expect(getLanguageRoutes("/product/everyday-leather-tote")).toEqual({
+    expect(getLanguageRoutes("/store/product/everyday-leather-tote")).toEqual({
       isArabic: false,
-      englishPath: "/product/everyday-leather-tote",
-      arabicPath: "/ar/product/everyday-leather-tote",
+      englishPath: "/store/product/everyday-leather-tote",
+      arabicPath: "/ar/store/product/everyday-leather-tote",
     });
-    expect(getLanguageRoutes("/ar/product/everyday-leather-tote")).toEqual({
+    expect(getLanguageRoutes("/ar/store/product/everyday-leather-tote")).toEqual({
       isArabic: true,
-      englishPath: "/product/everyday-leather-tote",
-      arabicPath: "/ar/product/everyday-leather-tote",
+      englishPath: "/store/product/everyday-leather-tote",
+      arabicPath: "/ar/store/product/everyday-leather-tote",
     });
   });
 });

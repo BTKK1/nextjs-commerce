@@ -82,19 +82,18 @@ export const storeCopy = {
       addTitle: "Add {product} in {color}, size {size} to the bag",
     },
     agent: {
-      title: "Maison Vert Assistant",
-      productGuide: "Product guide for {product}",
+      title: "Nbeh",
+      productGuide: "Your in-store sales assistant for {product}",
       clear: "Clear conversation",
-      close: "Close product chat",
-      open: "Open product chat",
-      askLabel: "Ask the product AI agent",
-      placeholder: "Reply here...",
+      close: "Close Nbeh chat",
+      open: "Chat with Nbeh",
+      askLabel: "Ask Nbeh about this product",
+      placeholder: "Ask Nbeh...",
       send: "Send",
-      thinking: "Thinking from catalog data...",
-      fallback: "I could not answer right now. Please try another product question from the demo data.",
-      fallbackLabel: "Fallback:",
+      thinking: "Nbeh is checking the product details...",
+      fallback: "I couldn't answer that right now. Try asking me another question about the product.",
       greeting:
-        "Hi - I'm the Maison Vert product assistant. You're viewing {product}. Ask me about fit, sizing, materials, care, colors, or gift suitability.",
+        "Hi, I'm Nbeh. Ask me anything about {product} and I'll help you see if it fits what you need.",
     },
   },
   ar: {
@@ -173,19 +172,18 @@ export const storeCopy = {
       addTitle: "أضف {product} بلون {color} ومقاس {size} إلى السلة",
     },
     agent: {
-      title: "مساعد Maison Vert",
-      productGuide: "دليل المنتج: {product}",
+      title: "نبيه",
+      productGuide: "مساعد مبيعاتك داخل المتجر لـ {product}",
       clear: "مسح المحادثة",
-      close: "إغلاق محادثة المنتج",
-      open: "فتح محادثة المنتج",
-      askLabel: "اسأل مساعد المنتج الذكي",
-      placeholder: "اكتب ردك هنا...",
+      close: "إغلاق محادثة نبيه",
+      open: "اسأل نبيه",
+      askLabel: "اسأل نبيه عن المنتج",
+      placeholder: "اسأل نبيه...",
       send: "إرسال",
-      thinking: "أراجع بيانات الكتالوج...",
-      fallback: "لا أستطيع الرد الآن. جرّب سؤالًا آخر عن المنتج من بيانات المتجر.",
-      fallbackLabel: "التحويل الاحتياطي:",
+      thinking: "نبيه يراجع تفاصيل المنتج...",
+      fallback: "ما قدرت أجاوبك الحين. جرّب تسألني سؤال ثاني عن المنتج.",
       greeting:
-        "مرحبًا، أنا مساعد Maison Vert للمنتجات. أنت تشاهد {product}. أقدر أساعدك بالمقاس، اللون، الخامة، العناية، أو مناسبته كهدية.",
+        "هلا، أنا نبيه. اسألني عن {product} وبساعدك تعرف إذا يناسب احتياجك.",
     },
   },
 } as const;
@@ -262,7 +260,7 @@ export function isStoreLocale(value: string | null): value is StoreLocale {
 }
 
 export function isArabicStorePath(pathname: string) {
-  return pathname === "/ar" || pathname.startsWith("/ar/");
+  return pathname === "/ar/store" || pathname.startsWith("/ar/store/");
 }
 
 export function localeFromStorePath(pathname: string): StoreLocale {
@@ -271,24 +269,26 @@ export function localeFromStorePath(pathname: string): StoreLocale {
 
 export function stripStoreLocalePrefix(pathname: string) {
   const cleanPathname = pathname || "/";
-  if (cleanPathname === "/ar") return "/";
-  if (cleanPathname.startsWith("/ar/")) return cleanPathname.slice(3) || "/";
+  if (cleanPathname === "/ar/store") return "/store";
+  if (cleanPathname.startsWith("/ar/store/")) return cleanPathname.slice(3) || "/store";
   return cleanPathname;
 }
 
 export function localizeStorePath(href: string, locale: StoreLocale) {
   const [pathAndQuery, hash = ""] = href.split("#");
   const [pathname, query = ""] = pathAndQuery.split("?");
-  const basePathname = stripStoreLocalePrefix(pathname || "/");
+  const basePathname = stripStoreLocalePrefix(pathname || "/store");
   const normalizedPathname = basePathname.startsWith("/") ? basePathname : `/${basePathname}`;
-  const localizedPathname = locale === "ar" ? (normalizedPathname === "/" ? "/ar" : `/ar${normalizedPathname}`) : normalizedPathname;
+  const storePathname =
+    normalizedPathname === "/" ? "/store" : normalizedPathname.startsWith("/store") ? normalizedPathname : `/store${normalizedPathname}`;
+  const localizedPathname = locale === "ar" ? `/ar${storePathname}` : storePathname;
   const querySuffix = query ? `?${query}` : "";
   const hashSuffix = hash ? `#${hash}` : "";
   return `${localizedPathname}${querySuffix}${hashSuffix}`;
 }
 
 export function getLanguageRoutes(pathname: string) {
-  const route = pathname || "/";
+  const route = pathname || "/store";
   const withoutTrailingSlash = route.length > 1 ? route.replace(/\/$/, "") : route;
   const isArabic = isArabicStorePath(withoutTrailingSlash);
   const englishPath = isArabic ? stripStoreLocalePrefix(withoutTrailingSlash) : withoutTrailingSlash;
@@ -296,7 +296,7 @@ export function getLanguageRoutes(pathname: string) {
 
   return {
     isArabic,
-    englishPath: englishPath || "/",
+    englishPath: englishPath || "/store",
     arabicPath,
   };
 }

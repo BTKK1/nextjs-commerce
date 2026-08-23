@@ -1,7 +1,7 @@
 # Product Page Audit
 
-Generated: 2026-07-13T09:35:55.167Z
-Preview URL: http://127.0.0.1:3004
+Generated: 2026-08-03T19:34:28.024Z
+Preview URL: http://127.0.0.1:3001
 Status: PASS
 
 ## Coverage

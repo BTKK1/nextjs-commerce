@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 function loadLocalEnv() {
   const output: Record<string, string> = {};
@@ -46,7 +47,7 @@ export default defineConfig({
   },
   webServer: shouldStartServer
     ? {
-        command: useBuildServer ? "pnpm exec next start -H 127.0.0.1 -p 3100" : "pnpm exec next dev --webpack -H 127.0.0.1 -p 3100",
+        command: useBuildServer ? "pnpm exec next start -H 127.0.0.1 -p 3100" : "pnpm run test:e2e:server",
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
@@ -55,7 +56,9 @@ export default defineConfig({
           ...process.env,
           AGENT_MODE: "live",
           NEXT_PUBLIC_DEMO_MODE: "true",
+          DATA_BACKEND: "local",
           SUPABASE_AGENT_ENABLED: "false",
+          DEMO_DATA_FILE: join(tmpdir(), `nbeh-playwright-${process.pid}.json`),
           SALES_AGENT_MODEL: "google/gemini-2.5-flash-lite",
           SALES_AGENT_FALLBACK_MODEL: "qwen/qwen3-235b-a22b-2507",
           SALES_AGENT_FALLBACK2_MODEL: "deepseek-chat",

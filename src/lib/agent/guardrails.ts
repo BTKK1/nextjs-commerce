@@ -134,6 +134,18 @@ const unsafeOutputPatterns = [
   /مفتاح api|بيانات الأدمن|بيانات المدير|تعليمات النظام|رقم البطاقة|كلمة المرور|استشارة قانونية|علاج|تشخيص/i,
 ];
 
+const disallowedSalesStyleOutputPatterns = [
+  /عزيزي العميل|يسعدنا خدمتك|بكل سرور|نحن نقدم لك/i,
+  /لا تفوت الفرصة|لازم تشتريه|فرصة لا تعوض/i,
+  /\b(do not miss out|don't miss out|must buy|once[- ]in[- ]a[- ]lifetime opportunity|best product on the market)\b/i,
+];
+
+const wrongAssistantIdentityOutputPatterns = [
+  /\bi(?:'m| am) (?:the )?maison vert (?:product )?assistant\b/i,
+  /\bmy name is (?!nbeh\b)[a-z][a-z -]{1,40}\b/i,
+  /أنا مساعد maison vert|أنا مساعد متجر maison vert/i,
+];
+
 const unsupportedOutputPatterns = [
   /\b(i can add|i'll add|i will add|adding it to your bag|add(ed)? it to your bag|add(ed)? it to the bag|add(ed)? it to your cart|add(ed)? it to the cart)\b/i,
   /أقدر أضيف|بضيفه للسلة|أضفته للسلة|أضيفه للسلة|أقدر أضعه في السلة|أقدر أضيفه للسلة/i,
@@ -143,6 +155,11 @@ const unsupportedOutputPatterns = [
   /\b(certified by|official certification|authenticity certificate|certified authority)\b/i,
   /\b(waterproof|water[- ]resistant)\b/i,
   /كود خصم|كوبون|خصم خاص|توصيل اليوم|يوصل اليوم|يوصل بكرة|توصيل مضمون|توصيل مجاني|الشحن مجاني|شحن مجاني|ضمان سنتين|ضمان مدى الحياة|شهادة رسمية|معتمد من|ضد الماء|مقاوم للماء|إرجاع بعد 30 يوم|ارجاع بعد 30 يوم/i,
+];
+
+const unsupportedDurabilityOutputPatterns = [
+  /\b(built to last|lasts? for years|for years of use|won[’']?t fall apart|will not fall apart|more durable than|wears? beautifully (?:over|for) years|durable|durability|stands? up to daily use|holds? up over time)\b/i,
+  /بيعيش معك سنين|يعيش معك سنين|يعيش سنوات|يدوم معك سنين|يدوم|بتدوم معك|متين|متانة|ما راح يخرب|ما يتقطع|يتحمل الاستخدام|يتحمل لسنين/i,
 ];
 
 function includesAny(value: string, patterns: string[]): boolean {
@@ -178,6 +195,33 @@ function productMentionsField(product: DemoProduct, field: string): boolean {
 
 function productAllowsShippingBenefit(product: DemoProduct): boolean {
   return /(complimentary|free) shipping|free delivery/i.test(product.careShippingNotes);
+}
+
+function productAllowsDurabilityPromise(product: DemoProduct): boolean {
+  return productMentionsField(product, "durable")
+    || productMentionsField(product, "built to last")
+    || productMentionsField(product, "lasts for years")
+    || productMentionsField(product, "متين")
+    || productMentionsField(product, "يدوم")
+    || productMentionsField(product, "يتحمل");
+}
+
+function normalizeDigits(value: string): string {
+  return value
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)));
+}
+
+function mentionsWrongCurrency(answer: string, product: DemoProduct): boolean {
+  const normalized = normalizeDigits(answer).toLowerCase();
+  const amount = String(product.priceSar);
+  if (!new RegExp(`(^|[^0-9])${amount.replace(".", "\\.")}([^0-9]|$)`).test(normalized)) return false;
+  const currency = (product.currency ?? "USD").toUpperCase();
+  const mentionsUsd = /\$|\busd\b|\bdollars?\b|دولار/.test(normalized);
+  const mentionsSar = /\bsar\b|ر\.?\s?س|ريال|﷼/.test(normalized);
+  if (currency === "USD") return mentionsSar;
+  if (currency === "SAR") return mentionsUsd;
+  return false;
 }
 
 function mentionsSpecificDeliveryPromise(value: string): boolean {
@@ -276,6 +320,60 @@ export function evaluateOutputGuardrails(answer: string, language: "ar" | "en", 
       reason: "unsafe_request",
       message: fallbackText("unsafe_request", language),
       triggeredRule: "unsafe_output",
+    };
+  }
+
+  if (matchesAny(normalized, wrongAssistantIdentityOutputPatterns)) {
+    return {
+      allowed: false,
+      reason: "low_confidence",
+      message: fallbackText("low_confidence", language),
+      triggeredRule: "nbeh_identity_violation",
+    };
+  }
+
+  if (matchesAny(normalized, disallowedSalesStyleOutputPatterns)) {
+    return {
+      allowed: false,
+      reason: "low_confidence",
+      message: fallbackText("low_confidence", language),
+      triggeredRule: "sales_style_violation",
+    };
+  }
+
+  if (product && mentionsWrongCurrency(answer, product)) {
+    return {
+      allowed: false,
+      reason: "low_confidence",
+      message: fallbackText("low_confidence", language),
+      triggeredRule: "catalog_currency_mismatch",
+    };
+  }
+
+  if (product && matchesAny(normalized, unsupportedDurabilityOutputPatterns) && !productAllowsDurabilityPromise(product)) {
+    return {
+      allowed: false,
+      reason: "missing_catalog_field",
+      message: fallbackText("missing_catalog_field", language),
+      triggeredRule: "unsupported_durability_claim",
+    };
+  }
+
+  if (language === "ar" && (answer.match(/؟/g)?.length ?? 0) > 1) {
+    return {
+      allowed: false,
+      reason: "low_confidence",
+      message: fallbackText("low_confidence", language),
+      triggeredRule: "too_many_questions",
+    };
+  }
+
+  if (language === "en" && (answer.match(/\?/g)?.length ?? 0) > 1) {
+    return {
+      allowed: false,
+      reason: "low_confidence",
+      message: fallbackText("low_confidence", language),
+      triggeredRule: "too_many_questions",
     };
   }
 

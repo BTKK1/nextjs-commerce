@@ -77,7 +77,7 @@ const db = {
     { id: "source-003", insightId: "insight-003", conversationId: "conv-seed-coat", messageId: "msg-004", createdAt: now }
   ],
   dashboardSettings: [
-    { id: "settings-maison-vert-demo", merchantId: catalog.merchant.id, agentTone: "neutral_english", retentionDays: 90, demoMode: true, updatedAt: now }
+    { id: "settings-maison-vert-demo", merchantId: catalog.merchant.id, agentTone: "neutral_saudi", retentionDays: 90, demoMode: true, updatedAt: now }
   ],
   guardrails: [
     { id: "guardrail-allowed-topics", merchantId: catalog.merchant.id, name: "Allowed product topics", enabled: true, description: "Current product, catalog comparisons, sizes, colors, visible price, availability, care, material, fit, and gift suitability." },

@@ -1,8 +1,8 @@
 # Dashboard Audit
 
-Generated: 2026-07-13T09:36:16.256Z
-Preview URL: http://127.0.0.1:3004
-Conversation under audit: 305b258a-14e4-4eb0-bfa9-7a411c64b83c
+Generated: 2026-08-03T20:24:50.672Z
+Preview URL: http://127.0.0.1:3001
+Conversation under audit: 83e2de85-8394-46f1-ad9f-722bed170492
 Status: PASS
 
 ## Validated

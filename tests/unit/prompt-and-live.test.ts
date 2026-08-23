@@ -3,8 +3,9 @@ import { demoProducts } from "@/data/catalog";
 import { formatTemplate, storeCopy } from "@/components/saleh-demo/store-i18n";
 import { evaluateOutputGuardrails } from "@/lib/agent/guardrails";
 import { evaluateAgentResponse } from "@/lib/agent/evaluator";
-import { generateAgentAnswer } from "@/lib/agent/llm-client";
+import { areAgentAnswersNearDuplicates, estimateAgentTokenReservation, generateAgentAnswer } from "@/lib/agent/llm-client";
 import { buildAgentSystemPrompt, buildProductContext } from "@/lib/agent/prompt-builder";
+import { DEFAULT_AGENT_SYSTEM_PROMPT, NON_REMOVABLE_AGENT_GUARDRAILS } from "@/lib/agent/default-prompt";
 import { getModelConfig } from "@/lib/ai/model-config";
 import { getSellerKnowledgeForProduct } from "@/lib/knowledge/seller-knowledge";
 import { resetDatabaseForTests } from "@/lib/storage/json-store";
@@ -75,8 +76,9 @@ describe("prompt builder and live provider config", () => {
       knowledge!,
     );
 
-    expect(prompt).toContain("Answer only from the provided seller knowledge");
-    expect(prompt).toContain("Maison Vert Assistant");
+    expect(prompt).toContain("Answer only from verified product, catalog, store, and merchant context");
+    expect(prompt).toContain("You are Nbeh (نبيه)");
+    expect(prompt).toContain("Nbeh is the assistant identity; Maison Vert is the merchant");
     expect(prompt).toContain("dashboard_database");
     expect(prompt).toContain("demo_catalog");
     expect(prompt).toContain(`/product/${product.slug}`);
@@ -87,10 +89,34 @@ describe("prompt builder and live provider config", () => {
       ...product.crossSellProductSlugs,
     ]);
     expect(prompt).not.toContain("Machine compatibility list is not exhaustive");
-    expect(prompt).toContain("Do not offer to add items to the bag/cart");
+    expect(prompt).toContain("Do not claim to add products to cart or checkout");
     expect(prompt).not.toContain("adding it to the bag");
-    expect(prompt).toContain("at most two short paragraphs");
-    expect(prompt).toContain("no debug labels such as \"catalog-backed detail\"");
+    expect(prompt).toContain("more than two short paragraphs");
+    expect(prompt).toContain("Use no Markdown, bullets, debug labels");
+  });
+
+  it("keeps the client Nbeh persona and sales behavior non-removable", () => {
+    for (const prompt of [DEFAULT_AGENT_SYSTEM_PROMPT, NON_REMOVABLE_AGENT_GUARDRAILS]) {
+      expect(prompt).toContain("Nbeh");
+      expect(prompt).toContain("نبيه");
+      expect(prompt).toMatch(/merchant\/store name remains separate context|store, merchant context/);
+      expect(prompt).toMatch(/one or two short/);
+      expect(prompt).toMatch(/at most one question|not ask more than one useful question/);
+      expect(prompt).toMatch(/Do not force a question|never force a question/);
+      expect(prompt).toMatch(/Do not invent|Never invent/);
+      expect(prompt).toMatch(/explicit yes or no/);
+      expect(prompt).toMatch(/exceeds a verified (maximum|limit)/);
+      expect(prompt).toMatch(/never imply (?:that )?(?:the product fits|a known mismatch is suitable)/);
+    }
+
+    expect(DEFAULT_AGENT_SYSTEM_PROMPT).toContain("white Saudi Arabic");
+    expect(DEFAULT_AGENT_SYSTEM_PROMPT).toContain("عزيزي العميل");
+    expect(DEFAULT_AGENT_SYSTEM_PROMPT).toContain("يسعدنا خدمتك");
+    expect(DEFAULT_AGENT_SYSTEM_PROMPT).toContain("must buy");
+    expect(DEFAULT_AGENT_SYSTEM_PROMPT).toContain("do not miss out");
+    expect(DEFAULT_AGENT_SYSTEM_PROMPT).toContain("A missing gift box or wrapping detail does not make gift suitability itself unknown");
+    expect(NON_REMOVABLE_AGENT_GUARDRAILS).toContain("Treat gift suitability separately from gift packaging");
+    expect(NON_REMOVABLE_AGENT_GUARDRAILS).toContain("never force a question, CTA, or sale");
   });
 
   it("does not advertise adding items to the bag as an agent capability", () => {
@@ -146,13 +172,208 @@ describe("prompt builder and live provider config", () => {
     expect(answer.mode).toBe("live");
     const request = fetchMock.mock.calls[0][1] as RequestInit;
     const body = JSON.parse(String(request.body)) as { messages: Array<{ role: string; content: string }> };
-    expect(body.messages.slice(-3)).toEqual([
+    expect(body.messages.slice(-4)).toEqual([
       { role: "user", content: "I need something warm for work." },
       { role: "assistant", content: "The Atelier Wool Coat is designed for colder days." },
+      { role: "system", content: "Mandatory current-turn language: Reply in concise, natural English. Do not answer this turn in Arabic." },
       { role: "user", content: "Which color would you choose?" },
     ]);
 
     restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("detects repeated follow-up answers without flagging unrelated replies", () => {
+    expect(areAgentAnswersNearDuplicates(
+      "It fits a 14-inch laptop, notebook, and daily essentials for work.",
+      "It fits a 14-inch laptop, a notebook, and your daily work essentials.",
+    )).toBe(true);
+    expect(areAgentAnswersNearDuplicates(
+      "Camel is the most versatile color for work.",
+      "The listed price is $320.",
+    )).toBe(false);
+  });
+
+  it("reserves against the real prompt, history, output, and one repair pass", () => {
+    process.env.DEMO_PERSISTENCE = "memory";
+    resetDatabaseForTests(createSeedDatabase());
+    const product = demoProducts[0];
+    const knowledge = getSellerKnowledgeForProduct(product.slug)!;
+    const estimate = estimateAgentTokenReservation(
+      product,
+      "Which color fits the work use I mentioned?",
+      undefined,
+      knowledge,
+      [
+        { role: "user", content: "I need a warm coat for office commuting." },
+        { role: "assistant", content: "The wool and cashmere blend is intended for cold-weather layering." },
+      ],
+    );
+    expect(estimate).toBeGreaterThan(4_000);
+    expect(estimate).toBeLessThanOrEqual(50_000);
+  });
+
+  it("repairs a wrong Arabic currency while preserving the catalog currency", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "pleated-linen-trouser")!;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: "سعره 210 ريال." } }], usage: { prompt_tokens: 100, completion_tokens: 10, total_tokens: 110 } }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: "سعره $210، وإذا يهمك الكتان الطبيعي فهو خامته الأساسية." } }], usage: { prompt_tokens: 120, completion_tokens: 16, total_tokens: 136 } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "كم سعره وهل يستاهل؟");
+
+    expect(answer.text).toContain("$210");
+    expect(answer.text).not.toContain("ريال");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const repairBody = JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body)) as { messages: Array<{ role: string; content: string }> };
+    expect(repairBody.messages.at(-2)?.content).toContain("white Saudi Arabic");
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("deterministically adds acknowledgement and decision help when a price objection stays robotic", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "atelier-wool-coat")!;
+    const weakAnswer = "The Atelier Wool Coat is $489. The price reflects the double-faced wool and cashmere blend, cupro lining, and Italian weaving.";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: weakAnswer } }],
+      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "It feels expensive.");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(answer.text).toContain("$489");
+    expect(answer.text).toMatch(/^I get why/i);
+    expect(answer.text).toContain("double-faced wool and cashmere blend");
+    expect(answer.text).toContain("may not be the right buy");
+    expect(answer.providerRoute).toContain("objection_guidance_guardrail");
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("does not mistake suitability wording for physical sizing", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "everyday-leather-tote")!;
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: "Yes—its listed capacity includes a 14-inch laptop, notebook, and daily essentials, so it fits that work use." } }],
+      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "Is this a fit for carrying documents to work?");
+
+    expect(answer.fallbackReason).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("keeps the useful Arabic purchase-intent answer after removing a redundant greeting", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "high-rise-straight-denim")!;
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: "أهلين، هذا هو بنطلون High-Rise Straight Denim بقصة مستقيمة وخصر مرتفع. إذا تبي رأيي، خيار عملي للاستخدام اليومي." } }],
+      usage: { prompt_tokens: 100, completion_tokens: 30, total_tokens: 130 },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "ابي بنطلون");
+
+    expect(answer.fallbackReason).toBeUndefined();
+    expect(answer.text).toContain("High-Rise Straight Denim");
+    expect(answer.text).not.toMatch(/^أهلين/);
+    expect(answer.providerRoute).not.toContain("output_guardrail");
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("repairs a numerical compatibility mismatch into an explicit rejection", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "everyday-leather-tote")!;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        choices: [{ message: { content: "It fits laptops up to 14 inches." } }],
+        usage: { prompt_tokens: 100, completion_tokens: 10, total_tokens: 110 },
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        choices: [{ message: { content: "No—it only fits laptops up to 14 inches, so it will not fit a 15-inch laptop." } }],
+        usage: { prompt_tokens: 120, completion_tokens: 20, total_tokens: 140 },
+      }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "Will it fit my 15-inch laptop?");
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(answer.text).toMatch(/^No\b/i);
+    expect(answer.text).toMatch(/14 inches/i);
+    expect(answer.text).not.toMatch(/^Yes\b/i);
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("fails closed to a factual Arabic rejection when a repair stays ambiguous", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "everyday-leather-tote")!;
+    const ambiguous = "يشيل لابتوب حتى 14 إنش.";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: ambiguous } }],
+      usage: { prompt_tokens: 100, completion_tokens: 12, total_tokens: 112 },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "هل يناسب لابتوب ١٥ إنش؟");
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(answer.text).toMatch(/^لا[،,]/);
+    expect(answer.text).toContain("14 إنش");
+    expect(answer.text).toContain("15 إنش");
+    expect(answer.providerRoute).toContain("compatibility_guardrail");
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("makes one targeted repair when a follow-up repeats the prior answer", async () => {
+    const previousKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    const product = demoProducts.find((item) => item.slug === "everyday-leather-tote")!;
+    const repeated = "It fits a 14-inch laptop, notebook, and daily work essentials.";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: repeated } }], usage: { prompt_tokens: 100, completion_tokens: 15, total_tokens: 115 } }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: "For a daily commute, the zip-top closure is the useful difference; the trade-off is that the catalog does not give the tote's empty weight." } }], usage: { prompt_tokens: 120, completion_tokens: 28, total_tokens: 148 } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await generateAgentAnswer(product, "What about using it for a daily commute?", undefined, undefined, [
+      { role: "user", content: "Will it hold my office items?" },
+      { role: "assistant", content: repeated },
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(answer.text).toContain("daily commute");
+    expect(areAgentAnswersNearDuplicates(answer.text, repeated)).toBe(false);
+    restoreEnv("OPENROUTER_API_KEY", previousKey);
+  });
+
+  it("fails quality scoring for wrong currency, invented durability, canned greetings, and repeated answers", () => {
+    const product = demoProducts.find((item) => item.slug === "pleated-linen-trouser")!;
+    const answer = "Welcome! It is 210 SAR and durable enough to last for years.";
+    const evaluation = evaluateAgentResponse({
+      product,
+      message: "It feels expensive. Is it worth it?",
+      answer,
+      kind: "objection",
+      expectedObjection: "price_concern",
+      detectedObjection: "price_concern",
+      previousAssistantAnswer: answer,
+    });
+    expect(evaluation.passed).toBe(false);
+    expect(evaluation.hardFailures).toEqual(expect.arrayContaining([
+      "unsupported_durability_claim",
+      "canned_or_repeated_greeting",
+      "catalog_price_or_currency_missing",
+      "near_duplicate_previous_answer",
+    ]));
   });
 
   it("blocks unsupported live-model output claims after the provider responds", () => {
@@ -261,7 +482,7 @@ describe("prompt builder and live provider config", () => {
       vi.fn().mockImplementation(() => Promise.resolve(
         new Response(
           JSON.stringify({
-            choices: [{ message: { content: "Atelier Wool Coat is a practical option for cold-weather layering." } }],
+            choices: [{ message: { content: "This piece is a practical option for cold-weather layering." } }],
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
@@ -272,7 +493,7 @@ describe("prompt builder and live provider config", () => {
 
     expect(answer.fallbackReason).toBeUndefined();
     expect(answer.mode).toBe("live");
-    expect(answer.text).toContain("Atelier Wool Coat");
+    expect(answer.text).toContain("practical option");
     expect(answer.providerRoute).toContain("catalog_grounding_repair_low_confidence");
 
     restoreEnv("OPENROUTER_API_KEY", previous.openrouterKey);

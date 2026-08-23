@@ -10,17 +10,17 @@ const demoProductSlugs = new Set(demoProducts.map((product) => product.slug));
 function isDemoShowcasePath(pathname: string) {
   const demoPathname = stripStoreLocalePrefix(pathname);
   if (
-    demoPathname === "/" ||
-    demoPathname === "/cart" ||
+    demoPathname === "/store" ||
+    demoPathname === "/store/cart" ||
     demoPathname === "/checkout" ||
     demoPathname === "/success" ||
-    demoPathname === "/categories" ||
+    demoPathname === "/store/categories" ||
     demoPathname.startsWith("/dashboard")
   ) {
     return true;
   }
 
-  const productMatch = demoPathname.match(/^\/products?\/([^/?#]+)$/);
+  const productMatch = demoPathname.match(/^\/store\/products?\/([^/?#]+)$/);
   return productMatch ? demoProductSlugs.has(productMatch[1]) : false;
 }
 

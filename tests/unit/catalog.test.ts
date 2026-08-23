@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { demoProducts, getDemoProductBySlug } from "@/data/catalog";
 import { demoCatalogProvider, getCatalogProvider } from "@/lib/catalog";
+import { ZidCatalogProvider } from "@/lib/catalog/zid-provider";
 
 describe("demo catalog provider", () => {
   it("returns the referenced Maison Vert products", () => {
@@ -45,5 +46,27 @@ describe("demo catalog provider", () => {
   it("keeps Salla and Zid as not-connected stubs", () => {
     expect(getCatalogProvider("salla").isConnected).toBe(false);
     expect(getCatalogProvider("zid").isConnected).toBe(false);
+    expect(getCatalogProvider("salla").manifest.requiredScopes).toContain("products.read");
+    expect(getCatalogProvider("zid").manifest.supportsWebhooks).toBe(true);
+    expect(getCatalogProvider("zid").manifest.requiredScopes).toContain("third_js_write");
+  });
+
+  it("keeps Zid inventory inside the PostgreSQL integer range", () => {
+    const provider = new ZidCatalogProvider();
+    const infiniteProduct = provider.normalizeProduct({
+      id: 101,
+      name: { ar: "منتج غير محدود", en: "Unlimited product" },
+      price: 99,
+      is_infinite: true,
+    });
+    const oversizedProduct = provider.normalizeProduct({
+      id: 102,
+      name: { en: "Oversized inventory" },
+      price: 49,
+      quantity: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(infiniteProduct?.inventory).toBe(2_147_483_647);
+    expect(oversizedProduct?.inventory).toBe(2_147_483_647);
   });
 });

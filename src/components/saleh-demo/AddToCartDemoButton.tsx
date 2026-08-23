@@ -11,6 +11,7 @@ interface Props {
   size: string;
   color: string;
   locale?: StoreLocale;
+  merchantKey: string;
 }
 
 function getVisitorRef() {
@@ -22,7 +23,7 @@ function getVisitorRef() {
   return created;
 }
 
-export function AddToCartDemoButton({ product, size, color, locale = "en" }: Props) {
+export function AddToCartDemoButton({ product, size, color, locale = "en", merchantKey }: Props) {
   const [added, setAdded] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const copy = storeCopy[locale].cart;
@@ -43,6 +44,7 @@ export function AddToCartDemoButton({ product, size, color, locale = "en" }: Pro
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "demo_add_to_cart_clicked",
+        merchantKey,
         productSlug: product.slug,
         visitorRef: getVisitorRef(),
         locale
@@ -55,7 +57,7 @@ export function AddToCartDemoButton({ product, size, color, locale = "en" }: Pro
       type="button"
       onClick={handleClick}
       disabled={!hydrated}
-      className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-[#6f5a43] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-[#6f5a43] disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-white sm:w-auto"
       title={formatTemplate(copy.addTitle, { product: localizedProduct.name, color, size })}
       data-testid="add-to-cart-demo"
       data-hydrated={hydrated ? "true" : "false"}

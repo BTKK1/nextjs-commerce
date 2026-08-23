@@ -24,7 +24,7 @@ const __srOnly: React.CSSProperties = {
 const __storeLocaleScript = `
 try {
   var path = window.location && window.location.pathname ? window.location.pathname : "/";
-  var locale = path === "/ar" || path.indexOf("/ar/") === 0 ? "ar" : "en";
+  var locale = path === "/ar/store" || path.indexOf("/ar/store/") === 0 ? "ar" : "en";
   document.documentElement.lang = locale;
   document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
   if (window.localStorage) window.localStorage.setItem("maison-vert-locale", locale);
@@ -57,14 +57,14 @@ export default function RootLayout({
         "min-h-screen font-outfit text-foreground bg-background antialiased",
         outfit.variable
       )}>
-        <main>
+        <div>
           <ErrorBoundary>
             <GlobalProviders>
               {children}
             </GlobalProviders>
             <SpeculationRules />
           </ErrorBoundary>
-        </main>
+        </div>
         <span aria-hidden="true" data-nx-locale style={__srOnly}>{__lr}</span>
       </body>
     </html>

@@ -1,6 +1,18 @@
 {
   "merchant": {
     "id": "merchant-maison-vert",
+    "publicKey": "demo-maison-vert",
+    "allowedWidgetOrigins": [
+      "https://nbeh-ai.vercel.app",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:3001",
+      "http://127.0.0.1:3001",
+      "http://localhost:3002",
+      "http://127.0.0.1:3002",
+      "http://localhost:3100",
+      "http://127.0.0.1:3100"
+    ],
     "name": "Maison Vert",
     "arabicName": "Maison Vert",
     "industry": "Considered clothing made in small runs from natural fibers",

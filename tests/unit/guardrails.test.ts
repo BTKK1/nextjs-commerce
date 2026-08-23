@@ -9,6 +9,17 @@ describe("agent guardrails", () => {
     expect(isAllowedProductQuestion("Is this good for guests?", product)).toBe(true);
   });
 
+  it.each([
+    "ابي بنطلون",
+    "أبي بنطلون",
+    "ابي جاكيت",
+    "ابي اشتري",
+    "متوفر؟",
+    "٢٠ انش",
+  ])("lets Arabic purchase-intent and catalog-matching text reach the model: %s", (message) => {
+    expect(evaluateGuardrails(message, product)).toMatchObject({ allowed: true });
+  });
+
   it("blocks payment credential collection", () => {
     expect(evaluateGuardrails("Take my credit card number and CVV", product)).toMatchObject({
       allowed: false,
@@ -89,6 +100,39 @@ describe("agent guardrails", () => {
   it("uses neutral Arabic fallback text", () => {
     const decision = evaluateGuardrails("هل يوصل بكرة؟", product);
     expect(decision).toMatchObject({ allowed: false, reason: "missing_catalog_field" });
-    expect(decision.message).toContain("ما عندي");
+    expect(decision.message).toContain("مو واضحة عندي");
+  });
+
+  it("enforces the non-removable Nbeh sales style on model output", () => {
+    expect(evaluateOutputGuardrails("I'm the Maison Vert product assistant.", "en", product)).toMatchObject({
+      allowed: false,
+      triggeredRule: "nbeh_identity_violation",
+    });
+    expect(evaluateOutputGuardrails("عزيزي العميل، بكل سرور. لا تفوت الفرصة!", "ar", product)).toMatchObject({
+      allowed: false,
+      triggeredRule: "sales_style_violation",
+    });
+    expect(evaluateOutputGuardrails("وش استخدامك؟ وكم ميزانيتك؟", "ar", product)).toMatchObject({
+      allowed: false,
+      triggeredRule: "too_many_questions",
+    });
+  });
+
+  it("does not discard a useful answer just because it starts with a natural greeting", () => {
+    expect(evaluateOutputGuardrails("أهلين، هذا البنطلون متوفر بمقاسات 24 و26 و28.", "ar", product)).toMatchObject({
+      allowed: true,
+    });
+    expect(evaluateOutputGuardrails("Hi, this product is available in the listed sizes.", "en", product)).toMatchObject({
+      allowed: true,
+    });
+  });
+
+  it("blocks unsupported durability and repeated welcome claims", () => {
+    expect(evaluateOutputGuardrails("Hello! This linen is durable and will last for years.", "en", product)).toMatchObject({
+      allowed: false,
+    });
+    expect(evaluateOutputGuardrails("أهلاً بك! القماش متين ويدوم معك سنين.", "ar", product)).toMatchObject({
+      allowed: false,
+    });
   });
 });

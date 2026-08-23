@@ -54,7 +54,7 @@ function StoreShellContent({ children }: { children: ReactNode }) {
             <p className="mt-3 max-w-xs text-sm leading-6 text-stone-600">{copy.footer.description}</p>
           </div>
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{copy.footer.shop}</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-600">{copy.footer.shop}</p>
             <ul className="space-y-2 text-sm text-stone-700">
               {copy.footer.categories.map((item) => (
                 <li key={item}>{item}</li>
@@ -62,7 +62,7 @@ function StoreShellContent({ children }: { children: ReactNode }) {
             </ul>
           </div>
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{copy.footer.help}</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-600">{copy.footer.help}</p>
             <ul className="space-y-2 text-sm text-stone-700">
               {copy.footer.helpItems.map((item) => (
                 <li key={item}>{item}</li>
@@ -70,13 +70,13 @@ function StoreShellContent({ children }: { children: ReactNode }) {
             </ul>
           </div>
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{copy.footer.newsletter}</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-600">{copy.footer.newsletter}</p>
             <p className="text-sm leading-6 text-stone-600">{copy.footer.newsletterText}</p>
             <form className="mt-3 flex gap-2" action={localizedHref("/#collection")}>
               <input
                 type="email"
                 placeholder={copy.footer.emailPlaceholder}
-                className="w-full border-b border-stone-300 bg-transparent py-2 text-sm outline-none placeholder:text-stone-500 focus:border-ink"
+                className="w-full border-b border-stone-300 bg-transparent py-2 text-sm outline-none placeholder:text-stone-600 focus:border-ink"
               />
               <button className="text-sm font-semibold uppercase tracking-[0.18em] text-ink hover:text-[#7d623f]">
                 {copy.footer.join}
@@ -84,7 +84,7 @@ function StoreShellContent({ children }: { children: ReactNode }) {
             </form>
           </div>
         </div>
-        <div className="border-t border-stone-200 py-6 text-center text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+        <div className="border-t border-stone-200 py-6 text-center text-xs font-semibold uppercase tracking-[0.18em] text-stone-600">
           &copy; 2026 Maison Vert
         </div>
       </footer>

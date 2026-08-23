@@ -13,8 +13,12 @@ import {
 } from "@/lib/demo-bag";
 import { formatMoney } from "@/data/catalog";
 import { useEffect, useMemo, useState } from "react";
+import { useStoreLocale } from "@/components/saleh-demo/StoreLocaleProvider";
+import { localizeStorePath } from "@/components/saleh-demo/store-i18n";
 
 export function DemoBagPage() {
+  const { locale } = useStoreLocale();
+  const localizedHref = (href: string) => localizeStorePath(href, locale);
   const [items, setItems] = useState<DemoBagItem[] | null>(null);
 
   useEffect(() => {
@@ -42,7 +46,7 @@ export function DemoBagPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Maison Vert</p>
             <h1 className="mt-2 text-4xl font-semibold text-ink md:text-5xl">Your bag</h1>
           </div>
-          <Link href="/#collection" className="text-sm font-semibold uppercase tracking-[0.18em] text-[#7d623f] hover:underline">
+          <Link href={localizedHref("/#collection")} className="text-sm font-semibold uppercase tracking-[0.18em] text-[#7d623f] hover:underline">
             Continue shopping
           </Link>
         </div>
@@ -55,7 +59,7 @@ export function DemoBagPage() {
           <section className="mt-14 border-t border-stone-200 pt-14 text-center">
             <p className="text-stone-600">Nothing here yet.</p>
             <Link
-              href="/#collection"
+              href={localizedHref("/#collection")}
               className="mt-6 inline-flex border-b border-ink pb-1 text-sm font-semibold uppercase tracking-[0.2em] text-ink hover:text-[#7d623f]"
             >
               Discover the collection
@@ -70,7 +74,7 @@ export function DemoBagPage() {
                   className="grid grid-cols-[84px_1fr] gap-4 p-4 sm:grid-cols-[120px_1fr_auto] sm:gap-5 sm:p-6"
                   data-testid="bag-item"
                 >
-                  <Link href={`/product/${item.productSlug}`} className="block bg-stone-100">
+                  <Link href={localizedHref(`/product/${item.productSlug}`)} className="block bg-stone-100">
                     <Image
                       src={item.imagePath}
                       alt={item.name}
@@ -82,7 +86,7 @@ export function DemoBagPage() {
                   </Link>
                   <div className="flex min-w-0 flex-col justify-between gap-5">
                     <div>
-                      <Link href={`/product/${item.productSlug}`} className="text-lg font-semibold text-ink hover:text-[#7d623f]">
+                      <Link href={localizedHref(`/product/${item.productSlug}`)} className="text-lg font-semibold text-ink hover:text-[#7d623f]">
                         {item.name}
                       </Link>
                       <p className="mt-1 text-xs uppercase tracking-[0.16em] text-stone-500">

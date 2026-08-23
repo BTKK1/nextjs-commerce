@@ -65,7 +65,9 @@ async function auditProduct(browser, baseURL, product, viewport) {
     if (openState !== "true") addFinding("P1", "chat_not_open_by_default", product.slug, `Expected open product widget, got ${openState}.`);
     if (!(await visible(page, "agent-input"))) addFinding("P0", "chat_panel_not_open", product.slug, "Chat panel did not expose the input on product load.");
 
-    const greeting = await page.getByTestId("chat-messages").locator("p").first().textContent().catch(() => "");
+    const greetingNode = page.getByTestId("chat-messages").locator("p").first();
+    await expect(greetingNode).toContainText(product.name, { timeout: 5_000 }).catch(() => undefined);
+    const greeting = await greetingNode.textContent().catch(() => "");
     if (!greeting?.includes(product.name)) {
       addFinding("P1", "chat_greeting_not_product_specific", product.slug, `Greeting text: ${greeting}`);
     }

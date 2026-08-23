@@ -387,12 +387,12 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
     "products/update",
   ];
   const topic = (await headers()).get("x-bagisto-topic") || "unknown";
-  const secret = req.nextUrl.searchParams.get("secret");
+  const secret = req.headers.get("x-bagisto-revalidation-secret");
   const isCollectionUpdate = collectionWebhooks.includes(topic);
   const isProductUpdate = productWebhooks.includes(topic);
 
   if (!secret || secret !== process.env.BAGISTO_REVALIDATION_SECRET) {
-    return NextResponse.json({ status: 200 });
+    return NextResponse.json({ error: "Unauthorized webhook" }, { status: 401 });
   }
 
   if (!isCollectionUpdate && !isProductUpdate) {

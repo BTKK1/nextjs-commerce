@@ -149,26 +149,32 @@ export function createSeedDatabase(): DemoDatabase {
       {
         id: "settings-maison-vert-demo",
         merchantId: demoMerchant.id,
-        agentTone: "neutral_english",
+        agentTone: "neutral_saudi",
         retentionDays: 90,
         demoMode: true,
-        updatedAt: seedTime
+        updatedAt: seedTime,
+        widgetOnboardingMessageAr: "هلا! أنا نبيه، مساعد المبيعات هنا. اسألني عن {product} وبساعدك تعرف إذا يناسبك.",
+        widgetOnboardingMessageEn: "Hi, I’m Nbeh, the in-store sales assistant. Ask me anything about {product} and I’ll help you decide if it fits what you need.",
+        widgetPositionAr: "left",
+        widgetPositionEn: "right",
+        widgetAutoPopupEnabled: true,
+        widgetAutoPopupDelaySeconds: 3
       }
     ],
     guardrails: [
       {
         id: "guardrail-allowed-topics",
         merchantId: demoMerchant.id,
-        name: "Allowed product topics",
+        name: "Nbeh grounded product topics",
         enabled: true,
-        description: "Current product, catalog comparisons, sizes, colors, visible price, availability, care, material, fit, and gift suitability."
+        description: "Nbeh may use only Maison Vert product, catalog, merchant, and shopper-provided facts: current product, catalog comparisons, sizes, colors, visible price, availability, care, material, fit, and gift suitability."
       },
       {
         id: "guardrail-blocked-claims",
         merchantId: demoMerchant.id,
-        name: "Unsupported claims",
+        name: "Nbeh persona and claim safety",
         enabled: true,
-        description: "No unsupported delivery, discounts, warranty, medical/legal claims, credentials, or personal data collection."
+        description: "Nbeh is the assistant; Maison Vert remains the merchant. Use direct, concise, natural white Saudi Arabic; ask at most one useful question only when needed; never force a CTA or sale; avoid formal stock phrases and aggressive selling; never invent delivery, discounts, warranty, product facts, merchant policies, credentials, or personal data."
       }
     ],
     platformIntegrations: [

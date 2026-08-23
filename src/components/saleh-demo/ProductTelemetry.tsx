@@ -12,7 +12,7 @@ function getVisitorRef() {
   return created;
 }
 
-export function ProductTelemetry({ productSlug }: { productSlug: string }) {
+export function ProductTelemetry({ productSlug, merchantKey }: { productSlug: string; merchantKey: string }) {
   const { locale } = useStoreLocale();
 
   useEffect(() => {
@@ -21,9 +21,9 @@ export function ProductTelemetry({ productSlug }: { productSlug: string }) {
       method: "POST",
       keepalive: true,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "product_page_view", productSlug, visitorRef, locale })
+      body: JSON.stringify({ type: "product_page_view", merchantKey, productSlug, visitorRef, locale })
     }).catch(() => undefined);
-  }, [locale, productSlug]);
+  }, [locale, merchantKey, productSlug]);
 
   return null;
 }

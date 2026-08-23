@@ -213,6 +213,107 @@ body {
   outline-color: #1f6f5f;
 }
 
+[data-dashboard-shell] :where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #5b2eff;
+  outline-offset: 2px;
+}
+
+[data-dashboard-shell] :where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+
+/* Nbeh dashboard language mirrors the supplied landing page without altering it. */
+[data-dashboard-shell] {
+  --nbeh-violet: #5b2eff;
+  --nbeh-violet-dark: #4a21d6;
+  --nbeh-ink: #0b0e12;
+  --nbeh-dim: #5c6272;
+  --nbeh-line: #e4e6ec;
+  --nbeh-surface: #f7f8fa;
+  min-height: 100svh;
+  background: #f7f8fa;
+  color: var(--nbeh-ink);
+  font-family: var(--font-nbeh-dashboard), var(--font-outfit), system-ui, sans-serif;
+}
+
+[data-dashboard-shell] > [data-dashboard-content] { order: 2; }
+[data-dashboard-shell] > aside { order: 1; }
+[data-dashboard-shell][dir="rtl"] > [data-dashboard-content] { order: 1; }
+[data-dashboard-shell][dir="rtl"] > aside { order: 2; border-right: 0; border-left: 1px solid var(--nbeh-line); }
+[data-dashboard-shell][dir="rtl"] :where(table) { text-align: right; }
+[data-dashboard-shell][dir="rtl"] :where(input, textarea, button, [role="combobox"], [role="option"]) { text-align: right; }
+[data-dashboard-shell][dir="rtl"] :where(.text-left) { text-align: right !important; }
+[data-dashboard-shell][dir="rtl"] :where(.text-right) { text-align: left !important; }
+[data-dashboard-shell][dir="rtl"] .nbeh-select-chevron { right: auto; left: 16px; }
+[data-dashboard-shell][dir="rtl"] :where(.mr-3) { margin-right: 0; margin-left: .75rem; }
+
+[data-dashboard-content] main {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1600px;
+}
+
+[data-dashboard-content] :where(h1, h2, h3) { letter-spacing: -0.025em; }
+[data-dashboard-content] .text-qahwa { color: var(--nbeh-violet) !important; }
+[data-dashboard-content] .bg-qahwa,
+[data-dashboard-content] .bg-ink { background-color: var(--nbeh-violet) !important; }
+[data-dashboard-content] .text-saffron { color: white !important; }
+[data-dashboard-content] .bg-emerald-50 { background-color: #ede8ff !important; }
+[data-dashboard-content] .text-emerald-950 { color: #2a1580 !important; }
+[data-dashboard-content] .bg-stone-50 { background-color: var(--nbeh-surface) !important; }
+[data-dashboard-content] .border-stone-200 { border-color: var(--nbeh-line) !important; }
+[data-dashboard-content] .border-stone-300 { border-color: #d6d9e1 !important; }
+[data-dashboard-content] .rounded-md { border-radius: 16px !important; }
+[data-dashboard-content] .shadow-sm { box-shadow: 0 16px 38px -30px rgba(11, 14, 18, 0.3) !important; }
+
+[data-dashboard-content] :where(input, select, textarea) {
+  background-color: white;
+  color: var(--nbeh-ink);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+[data-dashboard-content] :where(input, select, textarea):focus {
+  border-color: var(--nbeh-violet) !important;
+  box-shadow: 0 0 0 4px rgba(91, 46, 255, 0.1);
+}
+
+[data-dashboard-content] select,
+[data-dashboard-content] .nbeh-select {
+  min-height: 44px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  border: 1px solid #d6d9e1;
+  border-radius: 14px;
+  background-color: white;
+  background-image: linear-gradient(45deg, transparent 50%, #5b2eff 50%), linear-gradient(135deg, #5b2eff 50%, transparent 50%), linear-gradient(to right, #ece8fa, #ece8fa);
+  background-position: calc(100% - 20px) calc(50% - 2px), calc(100% - 15px) calc(50% - 2px), calc(100% - 42px) 50%;
+  background-size: 5px 5px, 5px 5px, 1px 22px;
+  background-repeat: no-repeat;
+  padding-right: 54px !important;
+  box-shadow: 0 8px 20px -18px rgba(11, 14, 18, 0.35);
+}
+
+[data-dashboard-content] select:hover,
+[data-dashboard-content] .nbeh-select:hover { border-color: #bfb3f4; background-color: #fbfaff; }
+.nbeh-select-wrap { position: relative; }
+.nbeh-select-wrap .nbeh-select { background-image: none; padding-inline: 16px 52px !important; }
+.nbeh-select-chevron { pointer-events: none; position: absolute; right: 16px; top: 50%; height: 18px; width: 18px; transform: translateY(-50%); color: #5b2eff; }
+
+[data-dashboard-content] table tbody tr { transition: background-color 150ms ease; }
+[data-dashboard-content] table tbody tr:hover { background-color: rgba(91, 46, 255, 0.035); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dashboard-shell] *,
+  [data-dashboard-shell] *::before,
+  [data-dashboard-shell] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer components {
 
   /* Custom scrollbar for compare table horizontal scrolling */

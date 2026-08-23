@@ -1,336 +1,182 @@
-<p align="center">
-  <a href="https://bagisto.com/en/headless-ecommerce/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/bagisto/temp-media/0b0984778fae92633f57e625c5494ead1fe320c3/dark-logo-P5H7MBtx.svg">
-      <source media="(prefers-color-scheme: light)" srcset="https://bagisto.com/wp-content/themes/bagisto/images/logo.png">
-      <img src="https://bagisto.com/wp-content/themes/bagisto/images/logo.png" alt="Bagisto logo">
-    </picture>
-  </a>
-</p>
+# AI Sales Agent Platform for Salla and Zid
 
-<p align="center">
-    <a href="https://bagisto.com/en/headless-ecommerce/">Website</a> | <a href="https://bagisto.com/en/bagisto-headless-ecommerce-installation-guide/">Documentation</a> | <a href="https://forums.bagisto.com/">Forums</a> | <a href="https://www.facebook.com/groups/bagisto/">Community</a>
-</p>
+The demo store is only the current fake pilot merchant. The real project is the Supabase-backed AI Sales Agent platform for Salla/Zid merchants, with a product-page widget, live LLM agent, merchant dashboard, advanced prompt/guardrail settings, conversation logging, insights, QA loop, and future Salla/Zid adapters.
 
-<p align="center">
-    <a href="https://twitter.com/intent/follow?screen_name=bagistoshop"><img src="https://img.shields.io/twitter/follow/bagistoshop?style=social"></a>
-    <a href="https://www.youtube.com/channel/UCbrfqnhyiDv-bb9QuZtonYQ"><img src="https://img.shields.io/youtube/channel/subscribers/UCbrfqnhyiDv-bb9QuZtonYQ?style=social"></a>
-</p>
+Maison Vert and the inherited Bagisto storefront are a development harness: they supply eight product pages, images, variants, buyer scenarios, and dashboard telemetry before real platform credentials are approved. They are not the product, the platform backend, or the intended merchant admin.
 
-<p align="center">
-    <a href="https://packagist.org/packages/bagisto/bagisto"><img src="https://poser.pugx.org/bagisto/bagisto/license.svg" alt="License"></a>
-</p>
+## Product boundaries
 
-#  Bagisto Next.js Commerce
+The platform provides:
 
-A [**headless eCommerce framework**](https://bagisto.com/en/headless-ecommerce/) built with **Next.js** and powered by **Bagisto**, designed for modern scalability and flexibility.
-Through layered caching and optimized rendering strategies, it consistently achieves a **100/100 Core Web Vitals score**, delivering lightning-fast performance and seamless shopping experiences.
+- a shared server-side sales-agent runtime;
+- a merchant-installable product-page widget;
+- merchant- and product-scoped catalog grounding;
+- a normalized catalog provider contract;
+- Demo Catalog, Salla, and Zid adapters;
+- Supabase persistence, authentication, roles, RLS, and audit logs;
+- conversations, transcript evidence, repeated questions, objections, weak-content signals, fallbacks, and quality metrics;
+- advanced prompt drafts, QA, publishing, rollback, version comparison, and immutable code guardrails;
+- OAuth, webhook, sync-job, and CSV fallback architecture for platform onboarding.
 
-Check the [Documentation](https://headless-doc.bagisto.com/) to quickly set up your Headless eCommerce store.
+It is not an ecommerce store, checkout product, Bagisto admin, Maison Vert project, generic chatbot, or payment-data collector.
 
-**Bagisto Version:** v2.4.x
+## Runtime flow
 
-**Bagisto API:** v1.0.3
-
-![Bagisto Headless Commerce Image](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commerce-home.png)
-## Features
-
-- **Ultra-fast storefront** with 100/100 Core Web Vitals score.  
-- **Layered caching** for API responses and page rendering.  
-- Fully **responsive and mobile-friendly** design.  
-- SEO optimized with meta tags, OpenGraph, and Twitter cards.  
-- Secure authentication via **NextAuth.js**.  
-- Powered by **Bagisto** GraphQL APIs for robust commerce functionality.  
-- **Incremental Static Regeneration (ISR)** with revalidation.
-  
-Bagisto Open Source Headless eCommerce is optimized to deliver a **100/100 Core Web Vitals score** across devices, ensuring top-tier performance and user experience.
-
-![Bagisto Headless Commerce Image](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commerce-performance.png)
-
-## Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-- **Node.js** 20+ and **npm**
-- Check Bagisto [backend requirement detail](https://devdocs.bagisto.com/2.3/introduction/requirements.html#server-configuration)
-
----
-
-## Installation
-
-1) Install Bagisto
- 
-    Begin by [installing the Bagisto](https://devdocs.bagisto.com/) eCommerce platform on your server or local environment.
-
-2) Install the Bagisto Headless Extension
-
-    After installing Bagisto, install the [Bagisto Headless Extension](https://github.com/bagisto/bagisto-api) to expose the required APIs for your frontend.
-
-3) Get your storefront up and running in one command:
-   
-   ```bash
-   npx -y @bagisto-headless/create your-storefront
-   ```
-   
-4) Configure `.env.local` in the Next.js Project
-
-   In your Next.js frontend project, create or update your `.env.local` file with the following variables:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_BAGISTO_ENDPOINT` | Enter Your Bagisto Shop URL | `https://your-store.bagisto.com/` |
-| `NEXT_PUBLIC_BAGISTO_STOREFRONT_KEY` | Enter Your Bagisto Storefront Key | `pk_storefront_*************************` |
-| `NEXTAUTH_URL` | Enter Your Headless Shop URL | `https://headless-store.com/` |
-| `NEXTAUTH_SECRET` | Enter Your Headless Shop Secret | Generate with `openssl rand -base64 32` |
-| `COMPANY_NAME` | Enter Your company name | Bagisto Headless Store |
-
-
-**Important Notes**  
-- You will need to use the environment variables defined in `.env.example` to run Next.js Commerce.  
-- It’s recommended to use **Vercel Environment Variables**, but a `.env` file is sufficient for local development.  
-- **Never commit your `.env` file** to version control — it contains secrets that would allow others to control your Bagisto store.
-
-
-## One-Click Deploy to Netlify
-
-Click the button above to deploy your own copy of Bagisto Headless eCommerce to Netlify instantly!
-
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/bagisto/nextjs-commerce)
-
----
-
-**Vercel Setup**
-
-Install the Vercel CLI:
-
-```bash
-npm i -g vercel
+```text
+Shopper product page
+  -> /widget.js embed loader
+  -> isolated /embed/widget frame
+  -> merchant public key + product reference
+  -> server resolves active merchant and normalized product in Supabase
+  -> server loads the merchant's active agent version and guardrails
+  -> grounded LLM route with code-enforced safety
+  -> conversation/messages/telemetry/insights persisted by merchant_id
+  -> merchant dashboard shows evidence and quality signals
 ```
 
-Link your local instance with Vercel and GitHub accounts (this creates the `.vercel` directory):
+System prompts, provider secrets, Supabase service credentials, raw OAuth tokens, and internal reasoning are never returned to the shopper widget.
+
+## Provider architecture
+
+| Provider | Current state | Purpose |
+|---|---|---|
+| Demo Catalog | Connected for the pilot | Development, visual QA, and fallback catalog only |
+| Salla | Adapter/OAuth/webhook/sync boundaries ready; not connected | Future production merchant catalog |
+| Zid | Adapter/OAuth/webhook/sync boundaries ready; not connected | Future production merchant catalog |
+| CSV/product export | Import command ready | Approval-delay fallback into the normalized products table |
+
+Salla or Zid is not marked connected until app approval, credentials, scopes, secure token storage, and provider-specific contract tests are complete. The callback deliberately stops at `pending_token_vault`; it does not store raw tokens in Supabase.
+
+## Main routes
+
+Shopper/platform:
+
+- `GET /widget.js` — external embed loader.
+- `GET /embed/widget` — isolated widget host.
+- `GET /api/widget/config` — public, non-secret merchant/product configuration.
+- `GET|POST /api/agent/chat` — transcript hydration and grounded sales conversations.
+- `POST /api/events` — anonymous widget/product telemetry.
+- `GET /api/agent/health` — model and catalog-provider health metadata.
+
+Integration readiness:
+
+- `GET /api/integrations/[provider]/oauth/start`
+- `GET /api/integrations/[provider]/oauth/callback`
+- `POST /api/integrations/[provider]/webhooks`
+- `POST /api/dashboard/integrations/[provider]/sync`
+
+Merchant dashboard:
+
+- `/dashboard`
+- `/dashboard/conversations` and `/dashboard/conversations/[id]`
+- `/dashboard/insights`
+- `/dashboard/products`
+- `/dashboard/integrations`
+- `/dashboard/settings`
+- `/dashboard/agent`, `/advanced`, `/versions`, `/qa`, and `/playground`
+- `/dashboard/audit-log`
+
+## Supabase model and access
+
+Versioned migrations create merchant-scoped UUID tables for merchants, merchant users, products, visitors, conversations, messages, insights and insight sources, settings, agent configs, prompt versions, guardrails, integrations, sync jobs, webhook events, OAuth state, audit logs, QA runs/cases, and analytics events.
+
+Roles:
+
+- `owner`: full merchant administration and advanced agent governance;
+- `admin`: products, integrations, settings, conversation review, and audit visibility;
+- `advanced_admin`: advanced prompt/QA governance without integration ownership;
+- `viewer`: merchant analytics, conversations, products, and integration status; no mutations or private prompts.
+
+The shopper runtime uses a public merchant key only as an identifier. Server-side code resolves it to `merchant_id`; all reads and writes remain explicitly merchant-scoped. The service key is server-only.
+
+## Local setup
+
+Requirements: Node.js 22 and pnpm 11.7.0.
 
 ```bash
-vercel link
-```
-
-Download your environment variables:
-
-```bash
-vercel env pull
-```
-
----
-
-**Run the development server:**
-
-```bash
-npm run dev
-```
-
-**Build for production:**
-
-```bash
-npm run build
-npm run start
-```
-
----
-
-## Usage
-
-Install dependencies:
-
-```bash
-pnpm install
-```
-
-Start the development server:
-
-```bash
-pnpm run dev
-```
-Access the store at: [http://localhost:3000](http://localhost:3000)
-
-### Available Scripts
-
-| Script | Description |
-|--------|-------------|
-| `pnpm run dev` | Start the Next.js development server |
-| `pnpm run build` | Create an optimized production build |
-| `pnpm run start` | Run the production server |
-| `pnpm run lint` | Lint the codebase with ESLint |
-| `pnpm run lint:fix` | Lint and auto-fix issues |
-| `pnpm run typecheck` | Generate Next route types and type-check the project with `tsc` |
-
-## Saleh AI Sales Agent Demo
-
-This fork uses Bagisto Next.js Commerce as the storefront shell for the Saleh Stores AI Sales Agent demo.
-
-Demo behavior:
-
-- `/` renders the Maison Vert fashion storefront using the referenced product catalog and images.
-- `/product/[slug]` renders a responsive demo product page with color, size, size guide, local bag, and AI assistant controls.
-- `/products/[slug]` remains as a compatibility alias for the same demo product pages.
-- `/cart` and `/checkout` provide local browser-only bag and checkout flows for the demo catalog.
-- `/dashboard` and nested dashboard routes show KPIs, conversations, insights, product improvements, and settings.
-- `/api/agent/chat` and `/api/events` power the product-page AI widget and analytics logging.
-- Salla and Zid are intentionally not connected in this phase. The code keeps future provider stubs only.
-
-Local demo setup:
-
-```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm run generate:demo-assets
 pnpm run seed:demo
 pnpm run dev
 ```
 
-Verification:
+Use the Preview Server Manager described in `AGENTS.md` before starting a development or production preview. Do not launch a second server for the same project.
+
+## Supabase setup
+
+Copy `.env.example` to ignored `.env.local` and provide the Supabase URL, publishable key, server-only service key, direct migration URL, and transaction pool URL. Never commit real credentials.
 
 ```bash
-pnpm run handoff:check
+pnpm run supabase:migrate
+pnpm run supabase:seed
+pnpm run platform:verify
+pnpm run supabase:verify
+pnpm run db:types
 ```
 
-The handoff check is the local client handoff acceptance bar. It runs the tracked secret scan, asset generation, seed, Prisma schema validation, lint, Next route type generation, typecheck, unit tests, integration tests, product-page E2E, agent E2E, dashboard E2E, deterministic agent-quality matrix, screenshot audit, product-page audit, dashboard audit, and production build.
+Create the real client in Supabase Auth, then set `SEED_OWNER_USER_ID` to that Auth UUID and rerun the idempotent seed to create the owner membership. Do not invent an owner identity.
 
-Focused checks:
+For production:
+
+```text
+DATA_BACKEND=supabase
+NEXT_PUBLIC_DEMO_MODE=false
+SUPABASE_AGENT_ENABLED=true
+```
+
+Set `NEXT_PUBLIC_APP_URL` to the deployed HTTPS origin. Configure a unique `WIDGET_SIGNING_SECRET`, `INTEGRATION_STATE_SECRET`, and server-only `AGENT_RATE_LIMIT_SECRET` of at least 32 random characters. Add merchant widget-origin allowlists before public rollout. Vercel's overwritten client forwarding header is HMAC-pseudonymized for atomic shopper and Founder abuse limits; raw client IPs are never stored. Self-hosted deployments may enable `TRUST_PROXY_IP_HEADERS=true` only behind a proxy that strips and rewrites inbound forwarding headers.
+
+## Embedding on a product page
+
+```html
+<script
+  async
+  src="https://agent.example/widget.js"
+  data-merchant-key="merchant_public_key"
+  data-product-ref="merchant-product-slug"
+  data-locale="ar"
+></script>
+```
+
+The merchant key is public and identifies the tenant; it is not a Supabase key. Product references resolve only within that merchant.
+
+## CSV approval-delay fallback
+
+Required columns: `name`, `description`, `price`, `images`, `category`, `availability`, and `variants`. Recommended optional columns: `slug`, `external_id`, `sku`, `arabic_name`, `short_description`, `compare_at_price`, `currency`, `inventory`, `tags`, `faqs`, and `shipping_notes`. JSON-valued cells such as images, variants, tags, and FAQs must contain valid JSON.
+
+```bash
+pnpm catalog:import:csv --file=products.csv --merchant-id=<merchant-uuid> --platform=demo
+```
+
+## Safety invariants
+
+Dashboard prompt edits cannot disable code-level rules against invented discounts, delivery dates, warranties, certifications, stock, policies, or unsupported catalog claims. The runtime also blocks prompt disclosure, credential requests, card-data collection, and page-context injection. Missing catalog data must produce a transparent merchant/product-page fallback.
+
+Arabic answers use a neutral Saudi tone. Responses match the shopper language and remain commercially helpful without pressure.
+
+## Verification and handoff
 
 ```bash
 pnpm run secrets:check
-pnpm run backend:check
 pnpm run lint
 pnpm run typecheck
 pnpm run test:unit
-pnpm run test:integration
-pnpm run test:agent
-pnpm run test:agent:quality
-pnpm run test:e2e:product-pages
-pnpm run test:e2e:agent
-pnpm run test:e2e:dashboard
-pnpm run screenshots:products
-pnpm run audit:product-pages
-pnpm run audit:dashboard
-pnpm run build
+pnpm exec vitest run tests/integration
 pnpm run test:e2e
-```
-
-The product-page agent is live-LLM only. Every valid shopper question is sent through the configured provider route with grounded seller knowledge and the trusted server-side conversation transcript. There is no canned or regex-based answer mode. Tests stay deterministic by mocking the external provider at the test boundary, not by shipping a second response engine.
-
-```bash
-AGENT_MODE=live OPENROUTER_API_KEY=... pnpm run handoff:check
-AGENT_MODE=live OPENROUTER_API_KEY=... pnpm run test:agent:live
-NEXT_PUBLIC_DEMO_MODE=true
-```
-
-Live LLM mode uses the same default model route as Ting CRM Sales Helper Agent role `sales_agent_chat` in `E:\Ting-CRM\lib\poc\ai\provider.ts`, centralized here in `src/lib/ai/model-config.ts`:
-
-- Primary: OpenRouter `google/gemini-2.5-flash-lite`
-- Fallback: OpenRouter `qwen/qwen3-235b-a22b-2507`
-- Cross-provider fallback: DeepSeek direct `deepseek-chat` when `DEEPSEEK_API_KEY` is configured
-
-The model never gets platform write tools. Product catalog guardrails run first, and unsupported facts fall back instead of being invented.
-
-Supabase backend setup:
-
-```bash
-pnpm run backend:check
-pnpm run supabase:push
-```
-
-Required local/deployment variables are listed in `.env.example`. Keep `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, and `DIRECT_URL` server-only. Set `SUPABASE_AGENT_ENABLED=true` only in environments where server-side Supabase writes should be enabled. CI keeps it `false` and still runs the live agent through OpenRouter.
-
-`NEXTAUTH_SECRET` is required anywhere customer/account authentication routes are used. The merchant dashboard is a public showcase-only dashboard for this demo milestone and does not establish a customer session.
-
-Agent evaluation:
-
-```bash
-pnpm run test:agent
 pnpm run test:agent:quality
-pnpm run test:agent:live
+pnpm run build
+pnpm run handoff:check
 ```
 
-The live quality suite scores English, Arabic, product knowledge, missing-data fallback, objection handling, prompt-injection refusal, logging, and dashboard signals through the real agent route. It requires `OPENROUTER_API_KEY` or `DEEPSEEK_API_KEY`.
+See [PLATFORM_ARCHITECTURE.md](./PLATFORM_ARCHITECTURE.md), [PLATFORM_COMPLETION_AUDIT.md](./PLATFORM_COMPLETION_AUDIT.md), [DASHBOARD_COMPLETION_AUDIT.md](./DASHBOARD_COMPLETION_AUDIT.md), and [HANDOFF_REPORT.md](./HANDOFF_REPORT.md).
 
-CI runs deterministic provider-boundary tests, static checks, a production build, and non-agent browser coverage without storing model credentials. The full handoff and live-agent quality jobs run only when a provider key is configured.
+Canonical identity and security references: [PRODUCT_SOLUTION_GOALS.md](./PRODUCT_SOLUTION_GOALS.md), [SECURITY.md](./SECURITY.md), and—while the current external backend remains unavailable—[SUPABASE_SETUP_REQUIRED.md](./SUPABASE_SETUP_REQUIRED.md).
 
-Reports:
+## External work still required
 
-- `CLIENT_HANDOFF_ACCEPTANCE.md`
-- `AGENT_E2E_LOOP.md`
-- `AGENT_QUALITY_REPORT.md`
-- `AGENT_QUALITY_REPORT_LIVE.md`
-- `HANDOFF_REPORT.md`
-- `RUNBOOK.md`
-
-Rollback and support notes:
-
-- Reset the local demo state with `pnpm run seed:demo`.
-- Keep `.env.local` untracked; `pnpm run secrets:check` scans tracked files only.
-- Disable Supabase writes by setting `SUPABASE_AGENT_ENABLED=false`.
-- Demo Catalog is connected for the showcase build behind the seller knowledge provider; Salla and Zid remain future adapters and are shown as not connected in the dashboard provider-status page.
-- The dashboard stores anonymous visitor references and product conversation telemetry for demo insight aggregation; do not use it for payment data or unnecessary personal data.
-- Use `RUNBOOK.md` for preview recovery, OpenRouter/Supabase triage, rollback, and dashboard support checks.
-
----
-
-## Products
-
-The Open Source Headless eCommerce allows users to browse a wide range of products with built-in pagination and search functionality. Each product has its own detailed page showcasing images, descriptions, pricing, reviews, and availability.
-
-Bagisto Headless Commerce APIs support multiple product types, including simple, configurable, bundled, and downloadable products, ensuring flexibility for different business needs.
-
-![Bagisto Headless Commerce Image](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commerce-product-page.png)
-
-## Categories
-
-Products are neatly organized into hierarchical categories, making it easy for customers to navigate the store. Each category page displays relevant product listings with filtering and sorting options for a better shopping experience.
-
-The Open Source Headless eCommerce also ensures SEO-friendly category URLs with meta titles, descriptions, and breadcrumbs for improved discoverability.
-
-![Bagisto Headless Commerce Image](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commercecategory.png)
- 
-## Checkout
-
-The checkout process is fully functional, featuring complete cart management where customers can add, update, or remove items.
-
-Both guest and logged-in users can proceed through checkout, selecting shipping addresses and preferred payment methods.
-
-Once the order is placed, it is instantly synchronized with the Bagisto backend, enabling smooth order processing and management.
-
-![Bagisto Headless Commerce Image](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commerce-cart-checkout.png)
-
-## Customer Panel
-
-Registered customers get a dedicated account dashboard to manage their profile and activity across the store. Authentication is handled securely via **NextAuth.js**, ensuring each customer's data stays protected. On desktop the panel renders as a full-page layout with a persistent sidebar, while on mobile it opens as a slide-in drawer for a native, app-like experience.
-
-The customer panel includes:
-
-- **Profile** – View and edit personal details such as name, email, and password.
-
-  ![Customer profile page](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commerce-customer-profile.png)
-
-- **Addresses** – Create, edit, and remove multiple shipping and billing addresses for faster checkout.
-- **Orders** – Browse the complete order history and open any order to view its detailed summary, items, and current status.
-
-  ![Customer order history](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commerce-customer-order.png)
-
-- **Downloadable Products** – Access and re-download purchased digital products from a single place.
-- **Reviews** – Track and manage the product reviews submitted by the customer.
-- **Wishlist** – Save favorite products to revisit, move to the cart, or purchase later.
-
-  ![Customer wishlist](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commerce-customer-wishlist.png)
-
-- **Compare** – Add products to a comparison list to evaluate their attributes side by side.
-
-  ![Product comparison](https://raw.githubusercontent.com/bagisto/temp-media/refs/heads/master/bagisto-headless-commerce-customer-compare.png)
-
-All customer actions are synchronized in real time with the Bagisto backend through its GraphQL APIs.
-
-## Community
-Get Bagisto Headless Commerce support on [Facebook Group](https://www.facebook.com/groups/bagisto) and [Forum](https://forums.bagisto.com/)
-
-## License
-Bagisto headless eCommerce framework that will always remain free under the [MIT License](https://github.com/bagisto/nextjs-commerce/blob/main/license.md).
-
-## Security Vulnerabilities
-If you think that you have found a security issue in Bagisto Headless Commerce, please do not use the issue tracker and do not post it publicly. Instead, all security issues must be sent to [mailto:support@bagisto.com](mailto:support@bagisto.com).
+- obtain Salla and Zid app/API approval, OAuth credentials, webhook specifications, and production scopes;
+- connect a production secret vault and implement provider-specific token refresh/exchange;
+- finish payload normalization against approved API fixtures;
+- run sandbox and production contract tests before enabling either provider;
+- create and map the real merchant owner account;
+- rotate any server credentials previously shared outside the deployment secret manager.

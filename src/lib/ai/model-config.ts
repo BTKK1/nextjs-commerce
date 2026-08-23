@@ -56,7 +56,7 @@ export function getModelConfig(): ModelConfig {
     apiKey,
     deepseekApiKey,
     siteUrl: process.env.OPENROUTER_SITE_URL,
-    appName: process.env.OPENROUTER_APP_NAME || "Saleh Stores AI Sales Agent Demo",
+    appName: process.env.OPENROUTER_APP_NAME || "Nbeh AI",
     source: process.env.SALES_AGENT_MODEL || process.env.PRODUCT_AGENT_MODEL || process.env.OPENROUTER_MODEL ? "env" : "fallback_empty_repo"
   };
 }

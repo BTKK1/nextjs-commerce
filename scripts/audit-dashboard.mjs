@@ -25,12 +25,22 @@ async function chat(baseURL, body) {
 }
 
 async function expectText(page, locator, text, id) {
-  const content = await locator.innerText().catch(() => "");
+  let content = "";
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    content = await locator.innerText().catch(() => "");
+    if (content.includes(text)) return;
+    await page.waitForTimeout(250);
+  }
   if (!content || !content.includes(text)) addFinding("P0", id, `Expected text "${text}", got "${content}".`);
 }
 
 async function expectAnyText(page, locator, texts, id) {
-  const content = await locator.innerText().catch(() => "");
+  let content = "";
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    content = await locator.innerText().catch(() => "");
+    if (texts.some((text) => content.includes(text))) return;
+    await page.waitForTimeout(250);
+  }
   if (!content || !texts.some((text) => content.includes(text))) {
     addFinding("P0", id, `Expected one of "${texts.join('", "')}", got "${content}".`);
   }

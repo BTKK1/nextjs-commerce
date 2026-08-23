@@ -14,6 +14,7 @@ jobs:
       AGENT_MODE: live
       AGENT_QUALITY_MODE: live
       NEXT_PUBLIC_DEMO_MODE: "true"
+      DATA_BACKEND: local
       SUPABASE_AGENT_ENABLED: "false"
       SALES_AGENT_MODEL: google/gemini-2.5-flash-lite
       SALES_AGENT_FALLBACK_MODEL: qwen/qwen3-235b-a22b-2507
@@ -43,16 +44,16 @@ jobs:
         run: pnpm run generate:demo-assets && pnpm run seed:demo
 
       - name: Static and backend checks
-        run: pnpm run secrets:check && pnpm run backend:check && pnpm run lint && pnpm run typecheck
+        run: pnpm run secrets:check && pnpm run backend:check && pnpm run db:types && pnpm run lint && pnpm run typecheck
 
       - name: Deterministic provider-boundary tests
-        run: pnpm run test:unit && pnpm exec vitest run tests/integration/agent-api.test.ts
+        run: pnpm run test:unit && pnpm run test:integration
 
       - name: Production build
         run: pnpm run build
 
       - name: Non-agent browser coverage
-        run: pnpm run test:e2e:product-pages && pnpm run test:e2e:dashboard
+        run: pnpm run test:e2e:product-pages && pnpm run test:e2e:agent && pnpm run test:e2e:dashboard
 
       - name: Upload Playwright report
         if: always()
@@ -92,6 +93,7 @@ jobs:
     env:
       AGENT_MODE: live
       NEXT_PUBLIC_DEMO_MODE: "true"
+      DATA_BACKEND: local
       SUPABASE_AGENT_ENABLED: "false"
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       SALES_AGENT_MODEL: google/gemini-2.5-flash-lite

@@ -52,18 +52,29 @@ export function detectWeakDescriptionSignal(product: DemoProduct, message: strin
   if (intent === "warranty") return "missing_warranty";
   if (intent === "certification") return "missing_certification";
   if (intent === "discount") return "unsupported_discount_request";
-  if (intent === "shipping" && /tomorrow|today|exact|بكره|اليوم|متى/.test(normalized)) {
+  if (/(ship|deliver|delivery|arrival|arrive|توصيل|شحن|يوصل|يوصلني)/.test(normalized)
+    && /tomorrow|today|exact|بكره|بكرة|اليوم|متى/.test(normalized)) {
     return "missing_delivery_estimate";
   }
   if (/(box|included|inside|وش داخل|مرفق|الصندوق|العلبه|العلبة)/.test(normalized)) return "missing_box_contents";
-  if (product.weakDescriptionSignals.length > 0 && intent !== "general") {
-    return product.weakDescriptionSignals[0];
+  for (const signal of product.weakDescriptionSignals) {
+    const normalizedSignal = normalizeQuestion(signal);
+    const matchesMissingDetail =
+      (/inseam/.test(normalizedSignal) && /inseam|طول داخلي|طول الساق/.test(normalized))
+      || (/pilling/.test(normalizedSignal) && /pill|pilling|وبر|تكور/.test(normalized))
+      || (/opacity/.test(normalizedSignal) && /opacity|opaque|see through|sheer|شفاف|شفافيه/.test(normalized))
+      || (/gift packaging/.test(normalizedSignal) && /packag|wrap|box|تغليف|علبه|العلبه|العلبة/.test(normalized))
+      || (/tote dimensions/.test(normalizedSignal) && /dimension|measure|height|width|depth|ابعاد|قياس|ارتفاع|عرض|عمق/.test(normalized))
+      || (/garment measurements/.test(normalizedSignal) && /garment measure|sleeve|coat length|exact measure|قياسات القطعه|طول الكم|طول المعطف/.test(normalized))
+      || (/garment length/.test(normalizedSignal) && /garment length|exact length|top length|طول القطعه|الطول الدقيق/.test(normalized));
+    if (matchesMissingDetail) return signal;
   }
   return undefined;
 }
 
 interface ExtractionInput {
   db: DemoDatabase;
+  merchantId?: string;
   product: DemoProduct;
   conversationId: string;
   userMessageId: string;
@@ -81,6 +92,7 @@ function upsertInsight(
   const existing = db.insights.find(
     (insight) =>
       insight.productSlug === partial.productSlug &&
+      insight.merchantId === partial.merchantId &&
       insight.type === partial.type &&
       insight.category === partial.category,
   );
@@ -118,12 +130,13 @@ function upsertInsight(
 
 export function extractInsightsForMessage(input: ExtractionInput): Insight[] {
   const { db, product, conversationId, userMessageId, userMessage, fallbackReason } = input;
+  const merchantId = input.merchantId ?? product.merchantId ?? db.merchants[0].id;
   const created: Insight[] = [];
   const normalized = normalizeQuestion(userMessage);
   const repeatedCount = db.messages.filter((message) => {
     if (message.role !== "user") return false;
     const conversation = db.conversations.find((item) => item.id === message.conversationId);
-    return conversation?.productSlug === product.slug && normalizeQuestion(message.content) === normalized;
+    return conversation?.merchantId === merchantId && conversation.productSlug === product.slug && normalizeQuestion(message.content) === normalized;
   }).length;
 
   if (repeatedCount > 1) {
@@ -131,7 +144,7 @@ export function extractInsightsForMessage(input: ExtractionInput): Insight[] {
       upsertInsight(
         db,
         {
-          merchantId: db.merchants[0].id,
+          merchantId,
           productId: product.id,
           productSlug: product.slug,
           type: "repeated_question",
@@ -151,7 +164,7 @@ export function extractInsightsForMessage(input: ExtractionInput): Insight[] {
       upsertInsight(
         db,
         {
-          merchantId: db.merchants[0].id,
+          merchantId,
           productId: product.id,
           productSlug: product.slug,
           type: "objection",
@@ -171,7 +184,7 @@ export function extractInsightsForMessage(input: ExtractionInput): Insight[] {
       upsertInsight(
         db,
         {
-          merchantId: db.merchants[0].id,
+          merchantId,
           productId: product.id,
           productSlug: product.slug,
           type: "weak_description",
@@ -190,7 +203,7 @@ export function extractInsightsForMessage(input: ExtractionInput): Insight[] {
       upsertInsight(
         db,
         {
-          merchantId: db.merchants[0].id,
+          merchantId,
           productId: product.id,
           productSlug: product.slug,
           type: "unknown_answer",

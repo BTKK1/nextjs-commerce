@@ -16,4 +16,8 @@ export function getCatalogProvider(provider: PlatformProvider = "demo_catalog"):
   return new DemoCatalogProvider();
 }
 
+export function listCatalogProviders(): CatalogProvider[] {
+  return [new DemoCatalogProvider(), new SallaCatalogProvider(), new ZidCatalogProvider()];
+}
+
 export const demoCatalogProvider = new DemoCatalogProvider();

@@ -45,7 +45,8 @@ test("dashboard reflects conversations, transcript, insights, and demo provider 
   await expect(page.getByTestId("insight-summary")).toContainText("Repeated questions");
   await expect(page.getByTestId("insight-summary")).toContainText("Objections");
   await expect(page.getByText("missing_delivery_estimate").first()).toBeVisible();
-  await expect(page.getByText("Fallback or unknown-answer event").first()).toBeVisible();
+  await expect(page.getByText("Warranty detail missing").first()).toBeVisible();
+  await expect(page.getByText("missing catalog field").first()).toBeVisible();
 
   await page.goto("/dashboard/integrations", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Catalog provider status" })).toBeVisible();
@@ -54,8 +55,8 @@ test("dashboard reflects conversations, transcript, insights, and demo provider 
   await expect(page.getByTestId("integrations-status")).toContainText("Salla");
   await expect(page.getByTestId("integrations-status")).toContainText("not connected demo");
   await expect(page.getByTestId("integrations-status")).toContainText("Zid");
-  await expect(page.getByTestId("integrations-status")).toContainText("No Salla calls are made");
-  await expect(page.getByTestId("integrations-status")).toContainText("No Zid calls are made");
+  await expect(page.getByTestId("integrations-status")).toContainText("Disabled until OAuth");
+  await expect(page.getByTestId("integrations-status")).toContainText("keeps each store’s products and agent isolated");
 
   await watch.expectClean();
 });
@@ -77,15 +78,32 @@ test("dashboard demo pages do not start customer auth session polling", async ({
   await expect.poll(() => sessionRequests.length).toBe(0);
 });
 
-test("customer auth routes keep the NextAuth session boundary", async ({ page }) => {
-  const sessionRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("/api/auth/session")) {
-      sessionRequests.push(request.url());
-    }
-  });
+test("dashboard navigation stays available and dense pages remain operable", async ({ page }) => {
+  await page.goto("/dashboard/insights", { waitUntil: "domcontentloaded" });
+  const sidebar = page.locator("aside");
+  const mobileMenu = page.getByRole("button", { name: "Open menu" });
+  if (await mobileMenu.isVisible()) await mobileMenu.click();
+  await expect(page.getByRole("link", { name: "Insights", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("navigation", { name: "Pagination" })).toContainText("Page 1");
+  await expect(sidebar).toHaveCSS("position", "sticky");
 
+  await page.evaluate(() => window.scrollTo(0, Math.min(1600, document.body.scrollHeight)));
+  await expect.poll(async () => Math.round((await sidebar.boundingBox())?.y ?? -100)).toBeGreaterThanOrEqual(0);
+
+  await page.goto("/dashboard/conversations", { waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Search")).toBeVisible();
+  await expect(page.getByLabel("Product")).toBeVisible();
+  await expect(page.getByLabel("Fallback reason")).toBeVisible();
+
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+  const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(horizontalOverflow).toBeLessThanOrEqual(1);
+});
+
+test("customer auth routes keep the NextAuth session boundary", async ({ page, request }) => {
   await page.goto("/customer/login", { waitUntil: "domcontentloaded" });
-
-  await expect.poll(() => sessionRequests.length).toBeGreaterThan(0);
+  await expect(page.getByRole("heading", { name: "Sign in to your account" })).toBeVisible();
+  const session = await request.get("/api/auth/session");
+  expect(session.status()).toBe(200);
+  expect(await session.json()).toEqual({});
 });

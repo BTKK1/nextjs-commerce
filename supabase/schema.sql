@@ -1,3 +1,14 @@
+-- Canonical schema entry point.
+-- Apply supabase/migrations/202608030001_dashboard_sprint.sql with:
+--   pnpm run supabase:migrate
+-- This compatibility file is retained for existing deployment references.
+
+\ir migrations/202608030001_dashboard_sprint.sql
+\ir migrations/202608030002_platform_foundation.sql
+
+/* Legacy reference below (not executed because the migration command targets
+   the versioned migration above).
+
 -- Supabase-ready schema for the Saleh Stores AI Sales Agent demo.
 -- The local demo uses .local/demo-db.json by default so it can run
 -- without a live Supabase project. These tables map the same POC-style entities
@@ -217,3 +228,4 @@ alter table config_versions enable row level security;
 alter table analytics_events enable row level security;
 alter table agent_actions enable row level security;
 alter table agent_evaluations enable row level security;
+*/

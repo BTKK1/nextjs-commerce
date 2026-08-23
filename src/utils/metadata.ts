@@ -2,20 +2,20 @@ import { IMAGES } from "@/utils/constants";
 
 export const staticSeo = {
   default: {
-    title: "Bagisto Headless",
-    description: "Headless eCommerce with Bagisto",
+    title: "Nbeh AI",
+    description: "Nbeh AI in-store sales agent",
     image: IMAGES.logo,
     canonical: "/",
   },
   register : {
     title: "Register",
-    description: "Register to Bagisto Headless",
+    description: "Register for Nbeh AI",
     image: IMAGES.logo,
     canonical: "/customer/register",
   },
   login: {
     title: "Login",
-    description: "Login to Bagisto Headless",
+    description: "Sign in to Nbeh AI",
     image: IMAGES.logo,
     canonical: "/customer/login",
   },

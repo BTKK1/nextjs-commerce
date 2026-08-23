@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const configHeader = [
   {
-    source: "/:path*",
+    source: "/((?!embed/widget).*)",
     headers: [
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "X-Frame-Options", value: "DENY" },
@@ -121,6 +121,29 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return configHeader;
+  },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/",
+          destination: "/nbeh-landing.html",
+        },
+      ],
+    };
+  },
+  async redirects() {
+    return [
+      { source: "/ar", destination: "/ar/store", permanent: false },
+      { source: "/cart", destination: "/store/cart", permanent: false },
+      { source: "/categories", destination: "/store/categories", permanent: false },
+      { source: "/product/:path*", destination: "/store/product/:path*", permanent: false },
+      { source: "/products/:path*", destination: "/store/products/:path*", permanent: false },
+      { source: "/ar/cart", destination: "/ar/store/cart", permanent: false },
+      { source: "/ar/categories", destination: "/ar/store/categories", permanent: false },
+      { source: "/ar/product/:path*", destination: "/ar/store/product/:path*", permanent: false },
+      { source: "/ar/products/:path*", destination: "/ar/store/products/:path*", permanent: false },
+    ];
   },
   compress: true,
   experimental: {

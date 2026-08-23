@@ -19,7 +19,8 @@ export function ProductCard({ product, locale = "en" }: { product: DemoProduct; 
             width={1000}
             height={1200}
             sizes="(min-width: 1024px) 30vw, (min-width: 640px) 50vw, 100vw"
-            className="h-full w-full scale-[1.02] object-cover transition duration-700 group-hover:scale-[1.055]"
+            className="h-auto w-full scale-[1.02] object-cover transition duration-700 group-hover:scale-[1.055]"
+            style={{ width: "100%", height: "auto" }}
             loading="eager"
             unoptimized
           />

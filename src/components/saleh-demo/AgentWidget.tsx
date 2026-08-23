@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Eraser, MessageCircle, Send, X } from "lucide-react";
+import { Eraser, Send, X } from "lucide-react";
 import { formatTemplate, storeCopy, type StoreLocale } from "@/components/saleh-demo/store-i18n";
 import { buildAgentWelcomeMessage } from "@/lib/agent/welcome";
 
@@ -24,15 +24,27 @@ interface AgentMemory {
 }
 
 interface AgentWidgetProps {
+  merchantKey?: string;
+  merchantName?: string;
   productSlug: string;
   productName: string;
   locale?: StoreLocale;
   defaultOpen?: boolean;
   placement?: "start" | "end";
+  trackProductView?: boolean;
+}
+
+interface ClientWidgetPreferences {
+  tonePreset: "neutral_saudi" | "warm_concise" | "consultative";
+  arabicDialect: "white_saudi" | "najdi" | "hijazi" | "gulf" | "modern_standard";
+  positionAr: "left" | "right";
+  positionEn: "left" | "right";
+  autoPopupEnabled: boolean;
+  autoPopupDelaySeconds: number;
 }
 
 const MAX_STORED_MESSAGES = 30;
-const STORAGE_PREFIX = "maison-vert-agent";
+const STORAGE_PREFIX = "nbeh-agent";
 
 function createSessionId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -134,8 +146,8 @@ function removeSessionFirst(key: string, legacyKeys: string[] = []) {
   }
 }
 
-function getVisitorRef() {
-  const key = "saleh-demo-visitor";
+function getVisitorRef(merchantKey: string) {
+  const key = `${STORAGE_PREFIX}:visitor:${merchantKey}`;
   const existing = window.localStorage.getItem(key);
   if (existing) return existing;
   const created = `anon-${crypto.randomUUID().slice(0, 8)}`;
@@ -143,10 +155,10 @@ function getVisitorRef() {
   return created;
 }
 
-function initialAssistantMessage(productName: string, locale: StoreLocale): ChatMessage {
+function initialAssistantMessage(productName: string, locale: StoreLocale, merchantName?: string, tonePreset?: string, arabicDialect?: string): ChatMessage {
   return {
     role: "assistant",
-    content: buildAgentWelcomeMessage(productName, locale),
+    content: buildAgentWelcomeMessage(productName, locale, merchantName, { tonePreset, arabicDialect }),
     createdAt: new Date().toISOString(),
   };
 }
@@ -293,6 +305,7 @@ function readStoredAgentState(productSlug: string, productName: string, locale: 
 
 function writeStoredAgentState(
   productSlug: string,
+  merchantKey: string,
   productName: string,
   locale: StoreLocale,
   sessionId: string,
@@ -314,7 +327,7 @@ function writeStoredAgentState(
       productName,
       locale,
       sessionId,
-      visitorRef: getVisitorRef(),
+      visitorRef: getVisitorRef(merchantKey),
       conversationId: conversationId || "",
       memory: normalizeStoredMemory(memory),
       messages: safeMessages,
@@ -337,6 +350,38 @@ function transcriptText(messages: ChatMessage[]) {
 function TypewriterText({ text, animate }: { text: string; animate: boolean }) {
   if (!animate) return <>{text}</>;
   return <AnimatedTypewriterText text={text} />;
+}
+
+function NbehFace({ expression = "ready", className = "" }: { expression?: "ready" | "thinking"; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 120 120"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M 42 10 H 78 A 32 32 0 0 1 110 42 V 78 A 32 32 0 0 1 78 110 H 18 A 8 8 0 0 1 10 102 V 42 A 32 32 0 0 1 42 10 Z"
+        fill="#5B2EFF"
+      />
+      {expression === "thinking" ? (
+        <>
+          <circle className="motion-safe:animate-pulse" cx="46" cy="27" r="3.6" fill="white" />
+          <circle className="motion-safe:animate-pulse [animation-delay:150ms]" cx="60" cy="27" r="3.6" fill="white" />
+          <circle className="motion-safe:animate-pulse [animation-delay:300ms]" cx="74" cy="27" r="3.6" fill="white" />
+          <circle cx="45" cy="55" r="8" fill="white" />
+          <circle cx="81" cy="55" r="8" fill="white" />
+          <path d="M52 80 Q60 86 68 80" fill="none" stroke="white" strokeWidth="7" strokeLinecap="round" />
+        </>
+      ) : (
+        <>
+          <circle cx="42" cy="52" r="9" fill="white" />
+          <circle cx="78" cy="52" r="9" fill="white" />
+          <path d="M42 76 Q60 90 78 76" fill="none" stroke="white" strokeWidth="8" strokeLinecap="round" />
+        </>
+      )}
+    </svg>
+  );
 }
 
 function AnimatedTypewriterText({ text }: { text: string }) {
@@ -372,7 +417,10 @@ function isFreshMessage(message: ChatMessage) {
   return Number.isFinite(createdAt) && Date.now() - createdAt < 8000;
 }
 
-export function AgentWidget({ productSlug, productName, locale = "en", defaultOpen = false, placement = "end" }: AgentWidgetProps) {
+export function AgentWidget({ merchantKey, merchantName, productSlug, productName, locale = "en", defaultOpen = false, placement = "end", trackProductView = false }: AgentWidgetProps) {
+  const effectiveMerchantKey = merchantKey ?? process.env.NEXT_PUBLIC_DEMO_MERCHANT_KEY ?? "demo-maison-vert";
+  const effectiveMerchantName = merchantName ?? (locale === "ar" ? "المتجر" : "Store");
+  const storageScope = `${effectiveMerchantKey}:${productSlug}`;
   const [open, setOpen] = useState(defaultOpen);
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState("");
@@ -380,7 +428,11 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
   const [conversationId, setConversationId] = useState<string>();
   const [isSending, setIsSending] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [initialAssistantMessage(productName, locale)]);
+  const [widgetPreferences, setWidgetPreferences] = useState<ClientWidgetPreferences | null>(null);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const tonePreset = widgetPreferences?.tonePreset;
+  const arabicDialect = widgetPreferences?.arabicDialect;
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [initialAssistantMessage(productName, locale, effectiveMerchantName)]);
   const messagesRef = useRef<HTMLDivElement>(null);
   const chatOpenLoggedRef = useRef(false);
   const restoredRef = useRef(false);
@@ -388,27 +440,58 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
   const copy = storeCopy[locale].agent;
 
   useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/widget/preferences?merchantKey=${encodeURIComponent(effectiveMerchantKey)}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => response.ok ? await response.json() as ClientWidgetPreferences : null)
+      .then((preferences) => {
+        if (!preferences) return;
+        setWidgetPreferences(preferences);
+        setMessages((current) => current.length === 1 && current[0]?.role === "assistant" && !conversationId
+          ? [initialAssistantMessage(productName, locale, effectiveMerchantName, preferences.tonePreset, preferences.arabicDialect)]
+          : current);
+      })
+      .catch(() => undefined)
+      .finally(() => setPreferencesLoaded(true));
+    return () => controller.abort();
+  }, [conversationId, effectiveMerchantKey, effectiveMerchantName, locale, productName]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
-      const storedSessionId = readStoredSessionId(productSlug, locale);
+      const storedSessionId = readStoredSessionId(storageScope, locale);
       setSessionId(storedSessionId);
-      const stored = readStoredAgentState(productSlug, productName, locale);
+      const stored = readStoredAgentState(storageScope, productName, locale);
       if (stored) {
         setSessionId(stored.sessionId || storedSessionId);
         setConversationId(stored.conversationId);
-        setMemory(stored.memory ?? readStoredMemory(productSlug));
+        setMemory(stored.memory ?? readStoredMemory(storageScope));
         setMessages(stored.messages);
         lastHydratedConversationRef.current = stored.conversationId;
       } else {
         setConversationId(undefined);
-        setMemory(readStoredMemory(productSlug));
-        setMessages([initialAssistantMessage(productName, locale)]);
+        setMemory(readStoredMemory(storageScope));
+        setMessages([initialAssistantMessage(productName, locale, effectiveMerchantName, tonePreset, arabicDialect)]);
         lastHydratedConversationRef.current = undefined;
       }
       restoredRef.current = true;
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [locale, productName, productSlug]);
+  }, [arabicDialect, effectiveMerchantName, locale, productName, storageScope, tonePreset]);
+
+  useEffect(() => {
+    if (!hydrated || !preferencesLoaded || defaultOpen || open || !widgetPreferences?.autoPopupEnabled) return;
+    const storageKey = `nbeh-agent:auto-popup:${effectiveMerchantKey}:${locale}`;
+    try {
+      if (window.sessionStorage.getItem(storageKey)) return;
+    } catch {
+      // Auto popup still works when session storage is unavailable.
+    }
+    const timer = window.setTimeout(() => {
+      setOpen(true);
+      try { window.sessionStorage.setItem(storageKey, "shown"); } catch { /* ignored */ }
+    }, widgetPreferences.autoPopupDelaySeconds * 1000);
+    return () => window.clearTimeout(timer);
+  }, [defaultOpen, effectiveMerchantKey, hydrated, locale, open, preferencesLoaded, widgetPreferences]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -437,27 +520,28 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
   }, [open]);
 
   useEffect(() => {
-    const visitorRef = getVisitorRef();
-    void fetch("/api/events", {
+    const visitorRef = getVisitorRef(effectiveMerchantKey);
+    const eventTypes = trackProductView ? ["product_page_view", "widget_impression"] : ["widget_impression"];
+    void Promise.all(eventTypes.map((type) => fetch("/api/events", {
       method: "POST",
       keepalive: true,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "widget_impression", productSlug, visitorRef, locale }),
-    }).catch(() => undefined);
-  }, [locale, productSlug]);
+      body: JSON.stringify({ type, merchantKey: effectiveMerchantKey, productSlug, visitorRef, locale }),
+    }).catch(() => undefined)));
+  }, [effectiveMerchantKey, locale, productSlug, trackProductView]);
 
   useEffect(() => {
     if (!hydrated || !restoredRef.current) return;
-    writeStoredAgentState(productSlug, productName, locale, sessionId || readStoredSessionId(productSlug, locale), conversationId, memory, messages, open);
-  }, [conversationId, hydrated, locale, memory, messages, open, productName, productSlug, sessionId]);
+    writeStoredAgentState(storageScope, effectiveMerchantKey, productName, locale, sessionId || readStoredSessionId(storageScope, locale), conversationId, memory, messages, open);
+  }, [conversationId, effectiveMerchantKey, hydrated, locale, memory, messages, open, productName, sessionId, storageScope]);
 
   useEffect(() => {
     if (!hydrated || !conversationId || lastHydratedConversationRef.current === `${conversationId}:backend`) return;
     if (messages.some((message) => message.role === "user")) return;
 
     const controller = new AbortController();
-    const visitorRef = getVisitorRef();
-    const query = new URLSearchParams({ conversationId, productSlug, visitorRef });
+    const visitorRef = getVisitorRef(effectiveMerchantKey);
+    const query = new URLSearchParams({ conversationId, merchantKey: effectiveMerchantKey, productSlug, visitorRef });
 
     fetch(`/api/agent/chat?${query.toString()}`, { signal: controller.signal })
       .then(async (response) => {
@@ -484,7 +568,7 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
       .catch(() => undefined);
 
     return () => controller.abort();
-  }, [conversationId, hydrated, messages, productSlug]);
+  }, [conversationId, effectiveMerchantKey, hydrated, messages, productName, productSlug]);
 
   useEffect(() => {
     if (!open || chatOpenLoggedRef.current) return;
@@ -493,9 +577,9 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
       method: "POST",
       keepalive: true,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "chat_opened", productSlug, visitorRef: getVisitorRef(), locale }),
+      body: JSON.stringify({ type: "chat_opened", merchantKey: effectiveMerchantKey, productSlug, visitorRef: getVisitorRef(effectiveMerchantKey), locale }),
     }).catch(() => undefined);
-  }, [locale, open, productSlug]);
+  }, [effectiveMerchantKey, locale, open, productSlug]);
 
   useEffect(() => {
     if (!open) return;
@@ -507,9 +591,9 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
   }, [isSending, messages, open]);
 
   function resetChat() {
-    const keys = getStorageKeys(productSlug);
-    removeSessionFirst(keys.state, getLegacyStorageKeys(productSlug, locale));
-    removeSessionFirst(keys.messages, getLegacyStorageKeys(productSlug, locale));
+    const keys = getStorageKeys(storageScope);
+    removeSessionFirst(keys.state, getLegacyStorageKeys(storageScope, locale));
+    removeSessionFirst(keys.messages, getLegacyStorageKeys(storageScope, locale));
     removeSessionFirst(keys.memory);
     removeSessionFirst(keys.sessionId);
     const nextSessionId = createSessionId();
@@ -518,21 +602,22 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
     setMemory(null);
     setConversationId(undefined);
     setInput("");
-    setMessages([initialAssistantMessage(productName, locale)]);
+    setMessages([initialAssistantMessage(productName, locale, effectiveMerchantName, tonePreset, arabicDialect)]);
   }
 
   function openChat() {
     setOpen(true);
+    try { window.sessionStorage.setItem(`nbeh-agent:auto-popup:${effectiveMerchantKey}:${locale}`, "shown"); } catch { /* ignored */ }
   }
 
   function downloadConversation() {
-    const text = transcriptText(messages) || `Agent: ${initialAssistantMessage(productName, locale).content}`;
+    const text = transcriptText(messages) || `Agent: ${initialAssistantMessage(productName, locale, effectiveMerchantName, tonePreset, arabicDialect).content}`;
     const blob = new Blob([`${text}\n`], { type: "text/plain;charset=utf-8" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     const date = new Date().toISOString().slice(0, 10);
     link.href = url;
-    link.download = `maison-vert-agent-${productSlug}-${date}.txt`;
+    link.download = `nbeh-${productSlug}-${date}.txt`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -551,7 +636,7 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
       .map(normalizeStoredMessage)
       .filter((message): message is ChatMessage => Boolean(message))
       .slice(-MAX_STORED_MESSAGES);
-    const activeSessionId = sessionId || readStoredSessionId(productSlug, locale);
+    const activeSessionId = sessionId || readStoredSessionId(storageScope, locale);
     if (!sessionId) setSessionId(activeSessionId);
     const memoryWithUser = mergeAgentMemory(memory, {
       latestUserMessage: cleanInput,
@@ -570,10 +655,11 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
         signal: abortController.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          merchantKey: effectiveMerchantKey,
           productSlug,
           message: cleanInput,
           conversationId,
-          visitorRef: getVisitorRef(),
+          visitorRef: getVisitorRef(effectiveMerchantKey),
           sessionId: activeSessionId,
           conversationHistory,
           memory: memoryWithUser,
@@ -586,9 +672,10 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
         conversationId?: string;
         answer?: string;
         fallbackReason?: string;
+        rateLimited?: boolean;
       };
 
-      if (!response.ok || !payload.answer) {
+      if ((!response.ok && response.status !== 429) || !payload.answer) {
         throw new Error("Agent request failed");
       }
 
@@ -611,6 +698,9 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
         ...current,
         assistantMessage,
       ]);
+      if (payload.rateLimited) {
+        setInput(cleanInput);
+      }
     } catch {
       setInput((current) => current || cleanInput);
       const errorMessage: ChatMessage = {
@@ -638,13 +728,13 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
 
   const startPlacement =
     "left-[max(24px,env(safe-area-inset-left))] max-[480px]:left-[max(10px,env(safe-area-inset-left))] min-[481px]:max-[599px]:left-[max(12px,env(safe-area-inset-left))] min-[600px]:max-[1180px]:left-[max(24px,env(safe-area-inset-left))] data-[open=true]:max-[480px]:right-[max(10px,env(safe-area-inset-right))]";
+  const configuredSide = locale === "ar" ? widgetPreferences?.positionAr : widgetPreferences?.positionEn;
+  const placeOnLeft = configuredSide ? configuredSide === "left" : placement === "start" || locale === "ar";
   const rootPlacement =
-    placement === "start"
+    placeOnLeft
       ? startPlacement
-      : locale === "ar"
-        ? startPlacement
-        : "right-[max(24px,env(safe-area-inset-right))] max-[480px]:right-[max(10px,env(safe-area-inset-right))] min-[481px]:max-[599px]:right-[max(12px,env(safe-area-inset-right))] min-[600px]:max-[1180px]:right-[max(24px,env(safe-area-inset-right))] data-[open=true]:max-[480px]:left-[max(10px,env(safe-area-inset-left))]";
-  const isStartPlacement = placement === "start" || locale === "ar";
+      : "right-[max(24px,env(safe-area-inset-right))] max-[480px]:right-[max(10px,env(safe-area-inset-right))] min-[481px]:max-[599px]:right-[max(12px,env(safe-area-inset-right))] min-[600px]:max-[1180px]:right-[max(24px,env(safe-area-inset-right))] data-[open=true]:max-[480px]:left-[max(10px,env(safe-area-inset-left))]";
+  const isStartPlacement = placeOnLeft;
   const rootAlignment = isStartPlacement ? "items-start" : "items-end";
   const originPlacement = isStartPlacement ? "origin-bottom-left" : "origin-bottom-right";
 
@@ -660,33 +750,34 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
       {open ? (
-        <section className={`pointer-events-auto flex h-[clamp(620px,72dvh,720px)] max-h-[min(720px,calc(100dvh-96px))] w-full ${originPlacement} flex-col overflow-hidden rounded-[22px] border border-[#c9ddd6] bg-white/95 shadow-[0_22px_52px_rgba(10,15,20,0.16)] backdrop-blur-xl max-[480px]:fixed max-[480px]:bottom-[max(10px,env(safe-area-inset-bottom))] max-[480px]:left-[max(10px,env(safe-area-inset-left))] max-[480px]:right-[max(10px,env(safe-area-inset-right))] max-[480px]:h-[min(680px,calc(100dvh-80px))] max-[480px]:max-h-[calc(100dvh-80px)] max-[480px]:w-[calc(100dvw-20px)] max-[480px]:max-w-[calc(100dvw-20px)] max-[480px]:rounded-[24px] min-[481px]:max-[599px]:h-[min(680px,calc(100dvh-80px))] min-[481px]:max-[599px]:max-h-[calc(100dvh-80px)] min-[481px]:max-[599px]:rounded-[24px] min-[600px]:max-[1180px]:h-[min(720px,calc(100dvh-96px))] min-[600px]:max-[1180px]:max-h-[calc(100dvh-96px)]`}>
-          <div className="relative shrink-0 border-b border-[#d6e4df] bg-white/90 px-3.5 py-3 max-[480px]:sticky max-[480px]:top-0 max-[480px]:z-10 max-[480px]:px-3 max-[480px]:pb-2.5 max-[480px]:pt-[18px] max-[480px]:before:absolute max-[480px]:before:left-1/2 max-[480px]:before:top-[7px] max-[480px]:before:h-1 max-[480px]:before:w-[46px] max-[480px]:before:-translate-x-1/2 max-[480px]:before:rounded-full max-[480px]:before:bg-[#5a6b73]/25">
+        <section className={`pointer-events-auto flex h-[clamp(620px,72dvh,720px)] max-h-[min(720px,calc(100dvh-96px))] w-full ${originPlacement} flex-col overflow-hidden rounded-[24px] border border-[#E4E6EC] bg-white/95 shadow-[0_24px_60px_rgba(11,14,18,0.14),0_12px_34px_rgba(91,46,255,0.08)] backdrop-blur-xl max-[480px]:fixed max-[480px]:bottom-[max(10px,env(safe-area-inset-bottom))] max-[480px]:left-[max(10px,env(safe-area-inset-left))] max-[480px]:right-[max(10px,env(safe-area-inset-right))] max-[480px]:h-[min(680px,calc(100dvh-80px))] max-[480px]:max-h-[calc(100dvh-80px)] max-[480px]:w-[calc(100dvw-20px)] max-[480px]:max-w-[calc(100dvw-20px)] max-[480px]:rounded-[24px] min-[481px]:max-[599px]:h-[min(680px,calc(100dvh-80px))] min-[481px]:max-[599px]:max-h-[calc(100dvh-80px)] min-[481px]:max-[599px]:rounded-[24px] min-[600px]:max-[1180px]:h-[min(720px,calc(100dvh-96px))] min-[600px]:max-[1180px]:max-h-[calc(100dvh-96px)]`}>
+          <div className="relative shrink-0 border-b border-[#EFF0F4] bg-white/95 px-3.5 py-3 max-[480px]:sticky max-[480px]:top-0 max-[480px]:z-10 max-[480px]:px-3 max-[480px]:pb-2.5 max-[480px]:pt-[18px] max-[480px]:before:absolute max-[480px]:before:left-1/2 max-[480px]:before:top-[7px] max-[480px]:before:h-1 max-[480px]:before:w-[46px] max-[480px]:before:-translate-x-1/2 max-[480px]:before:rounded-full max-[480px]:before:bg-[#5C6272]/25">
             <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2.5">
                 <button
                   type="button"
-                  className="focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#058f68] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_12px_28px_-18px_rgba(5,143,104,0.9)] transition active:scale-[0.98] max-[480px]:h-[38px] max-[480px]:w-[38px] max-[480px]:rounded-[13px]"
+                  className="focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-[#F7F8FA] p-0.5 shadow-[0_9px_24px_-16px_rgba(91,46,255,0.7)] transition hover:bg-[#EDE8FF] active:scale-[0.98] max-[480px]:h-10 max-[480px]:w-10"
                   onClick={downloadConversation}
-                  aria-label="Download conversation transcript"
-                  title="Download conversation transcript"
+                  aria-label={locale === "ar" ? "تنزيل محادثة نبيه" : "Download Nbeh conversation"}
+                  title={locale === "ar" ? "تنزيل محادثة نبيه" : "Download Nbeh conversation"}
                   data-testid="agent-avatar-download"
                 >
-                  <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                  <NbehFace className="h-full w-full" />
                 </button>
                 <div className="min-w-0">
-                  <h2 className="text-base font-semibold leading-5 tracking-tight text-[#0a0f14] [overflow-wrap:anywhere] max-[480px]:text-sm">
+                  <h2 className="text-base font-semibold leading-5 tracking-tight text-[#0B0E12] [overflow-wrap:anywhere] max-[480px]:text-sm">
                     {copy.title}
                   </h2>
-                  <p className="mt-0.5 text-sm leading-5 text-[#5a6b73] [overflow-wrap:anywhere] max-[480px]:line-clamp-1 max-[480px]:text-xs">
-                    {formatTemplate(copy.productGuide, { product: productName })}
+                  <p className="mt-0.5 flex items-center gap-1.5 text-[13px] leading-5 text-[#5C6272] [overflow-wrap:anywhere] max-[480px]:line-clamp-1 max-[480px]:text-xs">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#22C55E] shadow-[0_0_0_4px_rgba(34,197,94,0.1)]" aria-hidden="true" />
+                    <span>{formatTemplate(copy.productGuide, { product: productName })}</span>
                   </p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
-                  className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#d6e4df] bg-white text-[#53656d] shadow-[0_8px_20px_-16px_rgba(10,15,20,0.45)] transition hover:bg-[#f4faf7] hover:text-[#047857] active:scale-[0.98] max-[480px]:h-11 max-[480px]:w-11 max-[480px]:rounded-[14px]"
+                  className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#E4E6EC] bg-white text-[#5C6272] shadow-[0_8px_20px_-16px_rgba(11,14,18,0.45)] transition hover:border-[#CFC5FF] hover:bg-[#F7F5FF] hover:text-[#4A21D6] active:scale-[0.98] max-[480px]:h-11 max-[480px]:w-11 max-[480px]:rounded-[14px]"
                   onClick={resetChat}
                   title={copy.clear}
                   aria-label={copy.clear}
@@ -695,7 +786,7 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
                 </button>
                 <button
                   type="button"
-                  className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#d6e4df] bg-white text-[#0a0f14] shadow-[0_8px_20px_-16px_rgba(10,15,20,0.45)] transition hover:bg-[#f4faf7] active:scale-[0.98] max-[480px]:h-11 max-[480px]:w-11 max-[480px]:rounded-[14px]"
+                  className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#E4E6EC] bg-white text-[#0B0E12] shadow-[0_8px_20px_-16px_rgba(11,14,18,0.45)] transition hover:border-[#CFC5FF] hover:bg-[#F7F5FF] hover:text-[#4A21D6] active:scale-[0.98] max-[480px]:h-11 max-[480px]:w-11 max-[480px]:rounded-[14px]"
                   onClick={() => setOpen(false)}
                   title={copy.close}
                   aria-label={copy.close}
@@ -708,7 +799,7 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
 
           <div
             ref={messagesRef}
-            className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[linear-gradient(180deg,rgba(239,249,244,0.72),rgba(255,255,255,0.92)_40%,rgba(255,255,255,0.96))] px-3.5 py-4 overscroll-contain max-[480px]:px-3 max-[480px]:py-3"
+            className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(560px_260px_at_88%_-8%,rgba(91,46,255,0.1),transparent_62%),linear-gradient(180deg,#F7F8FA_0%,rgba(255,255,255,0.96)_38%,#FFFFFF_100%)] px-3.5 py-4 overscroll-contain max-[480px]:px-3 max-[480px]:py-3"
             data-testid="chat-messages"
           >
             {messages.map((message, index) => (
@@ -718,10 +809,10 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
                 data-testid={`chat-message-${message.role}`}
               >
                 <div
-                  className={`min-w-0 max-w-[86%] rounded-[17px] px-3.5 py-3 text-sm leading-6 shadow-[0_16px_35px_-32px_rgba(10,15,20,0.5)] max-[480px]:max-w-[92%] ${
+                  className={`min-w-0 max-w-[86%] rounded-[14px] px-3.5 py-3 text-sm leading-6 shadow-[0_16px_35px_-32px_rgba(11,14,18,0.48)] max-[480px]:max-w-[92%] ${
                     message.role === "user"
-                      ? "bg-[#058f68] text-white"
-                      : "border border-[#a8d8c9] bg-[#e8f8f1] text-[#203136]"
+                      ? "rounded-ee-[4px] bg-[#F1F2F5] text-[#0B0E12]"
+                      : "rounded-es-[4px] border border-[#DDD5FF] bg-[#EDE8FF] text-[#2A1580]"
                   }`}
                 >
                   <p className="text-[13px] leading-5 [overflow-wrap:anywhere]">
@@ -731,26 +822,27 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
                       message.content
                     )}
                   </p>
-                  {message.fallbackReason ? (
-                    <p className={`mt-2 text-xs ${message.role === "user" ? "text-white/75" : "text-[#047857]"}`}>
-                      {copy.fallbackLabel} {message.fallbackReason}
-                    </p>
-                  ) : null}
                 </div>
               </div>
             ))}
             {isSending ? (
               <div
-                className="inline-flex rounded-[17px] border border-[#a8d8c9] bg-[#e8f8f1] px-3.5 py-3 text-[13px] leading-5 text-[#496066] shadow-[0_16px_35px_-32px_rgba(10,15,20,0.5)]"
+                className="inline-flex w-fit items-center gap-2.5 rounded-[14px] rounded-es-[4px] border border-[#DDD5FF] bg-[#EDE8FF] px-3 py-2 text-[13px] leading-5 text-[#4A21D6] shadow-[0_16px_35px_-32px_rgba(11,14,18,0.48)]"
                 data-testid="agent-thinking"
               >
-                {copy.thinking}
+                <NbehFace expression="thinking" className="h-8 w-8 shrink-0 motion-safe:animate-[pulse_2.4s_ease-in-out_infinite]" />
+                <span>{copy.thinking}</span>
+                <span className="inline-flex gap-1" aria-hidden="true">
+                  <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#8B76D9] [animation-delay:-300ms] motion-reduce:animate-none" />
+                  <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#8B76D9] [animation-delay:-150ms] motion-reduce:animate-none" />
+                  <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#8B76D9] motion-reduce:animate-none" />
+                </span>
               </div>
             ) : null}
           </div>
           <form
             onSubmit={submit}
-            className="shrink-0 border-t border-[#d6e4df] bg-white/95 px-3 py-3 max-[480px]:px-3 max-[480px]:pb-[max(12px,env(safe-area-inset-bottom))] max-[480px]:pt-2.5"
+            className="shrink-0 border-t border-[#EFF0F4] bg-white/95 px-3 py-3 max-[480px]:px-3 max-[480px]:pb-[max(12px,env(safe-area-inset-bottom))] max-[480px]:pt-2.5"
           >
             <label className="sr-only" htmlFor="product-agent-message">
               {copy.askLabel}
@@ -767,7 +859,7 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
                   }
                 }}
                 disabled={!hydrated}
-                className="focus-ring min-h-11 min-w-0 flex-1 rounded-[13px] border border-[#058f68] bg-white px-3 text-sm leading-5 text-[#0a0f14] outline-none shadow-[inset_0_0_0_2px_rgba(5,143,104,0.08)] placeholder:text-[#8a9a9f] disabled:opacity-60"
+                className="focus-ring min-h-11 min-w-0 flex-1 rounded-[12px] border border-[#E2E4EA] bg-[#F7F8FA] px-3 text-sm leading-5 text-[#0B0E12] outline-none transition placeholder:text-[#8A8FA0] focus:border-[#5B2EFF] focus:bg-white focus:shadow-[inset_0_0_0_2px_rgba(91,46,255,0.08)] disabled:opacity-60"
                 placeholder={copy.placeholder}
                 aria-label={copy.askLabel}
                 data-testid="agent-input"
@@ -775,7 +867,7 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
               <button
                 type="submit"
                 disabled={!hydrated || isSending || !input.trim()}
-                className="focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-[#7dccb9] px-0 text-sm font-semibold text-white transition hover:bg-[#058f68] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-4"
+                className="focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-[#5B2EFF] px-0 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(91,46,255,0.28)] transition hover:-translate-y-0.5 hover:bg-[#4A21D6] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none sm:w-auto sm:px-4"
                 title={copy.send}
                 data-testid="agent-send"
               >
@@ -789,15 +881,13 @@ export function AgentWidget({ productSlug, productName, locale = "en", defaultOp
       ) : (
         <button
           type="button"
-          className={`focus-ring pointer-events-auto flex h-16 w-16 ${originPlacement} items-center justify-center rounded-[19px] bg-[#058f68] text-white shadow-[0_20px_45px_-22px_rgba(5,143,104,0.95)] ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:bg-[#047857] active:translate-y-0 active:scale-[0.98] max-[480px]:h-14 max-[480px]:w-14 max-[480px]:rounded-[18px] min-[481px]:max-[1180px]:h-[60px] min-[481px]:max-[1180px]:w-[60px]`}
+          className={`focus-ring pointer-events-auto flex h-[68px] w-[68px] ${originPlacement} items-center justify-center rounded-[22px] border border-white/40 bg-white p-1.5 text-white shadow-[0_20px_45px_-18px_rgba(91,46,255,0.75),0_8px_24px_-18px_rgba(11,14,18,0.6)] ring-1 ring-[#5B2EFF]/10 transition hover:-translate-y-1 hover:shadow-[0_24px_52px_-18px_rgba(91,46,255,0.82)] active:translate-y-0 active:scale-[0.98] max-[480px]:h-[60px] max-[480px]:w-[60px] max-[480px]:rounded-[20px] min-[481px]:max-[1180px]:h-16 min-[481px]:max-[1180px]:w-16`}
           onClick={openChat}
           title={copy.open}
           aria-label={copy.open}
           data-testid="agent-chat-toggle"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/30 bg-white/10 max-[480px]:h-[38px] max-[480px]:w-[38px]">
-            <MessageCircle className="h-6 w-6 max-[480px]:h-5 max-[480px]:w-5" aria-hidden="true" />
-          </span>
+          <NbehFace className="h-full w-full drop-shadow-[0_8px_14px_rgba(74,33,214,0.22)]" />
         </button>
       )}
     </div>

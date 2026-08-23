@@ -1,5 +1,57 @@
 ﻿# Implementation Log
 
+## 2026-08-13 - Platform Route Contract Regression Pass
+
+- Added behavioral route tests for single-use OAuth state consumption, signed-body-only webhook tenant routing, duplicate webhook acknowledgement, sanitized sync failures, and Supabase Founder global configuration reads/writes.
+- Confirmed the partial-index `ON CONFLICT` target is valid PostgreSQL syntax and that all new `security definer` RPCs are revoked from public, anonymous, and authenticated roles and granted only to `service_role`.
+- Stabilized widget E2E assertions around the intentional greeting/response typing animation without changing product behavior.
+- Verification passes: lint, typecheck, 83/83 unit tests, 20/20 integration tests, 42 local E2E cases with only two live-Supabase governance cases skipped, 25/25 static-page build generation, and secret scan across 655 files.
+- Final browser evidence used the registered production preview at `http://127.0.0.1:3000` with `duplicateCount=0`; the landing hash remains unchanged.
+- Client handoff remains blocked until a reachable Supabase project is migrated/seeded and production Auth, RLS, persistence, governance, and Vercel deployment checks pass.
+
+## 2026-08-13 - Role Matrix, RLS Proof, And Integration Audit Hardening
+
+- Expanded the live RLS verifier from two read checks to an anonymous/no-membership/cross-merchant and viewer/admin/advanced_admin/owner access matrix, including direct audit-forgery and membership-escalation denial.
+- Revoked authenticated direct writes to immutable audit evidence, merchant membership, webhook events, and OAuth states; server-only service operations and atomic RPCs remain authoritative.
+- Added atomic sanitized audit events for OAuth initiation, OAuth callback consumption, accepted webhooks, and integration sync success/failure.
+- Separated integration ownership from advanced prompt governance: owner/admin can connect or sync providers, advanced_admin cannot, and viewers can still read honest integration status without connection controls.
+- Enforced same-origin checks on Founder login, logout, and playground POST/PATCH; moved the inherited Bagisto revalidation secret out of the URL query string into a request header and return 401 on failure.
+- Verification: lint and typecheck pass; 86/86 unit tests, 22/22 integration tests, and 12/12 focused dashboard/embed browser tests pass. The stronger live RLS run still stops at the known Supabase DNS blocker before any fixture is created.
+
+## 2026-08-13 - Supabase Runtime Fail-Closed And Atomic Governance Hardening
+
+- Supabase-selected mode no longer falls back to the local catalog, demo owner identity, local dashboard database, default merchant prompt, or JSON chat runtime when configuration/querying fails.
+- `/api/agent/health` now reports backend and persistence truthfully and returns HTTP 503 with logging/insights disabled when Supabase is selected but not operational.
+- The handoff gate now requires `SUPABASE_AGENT_ENABLED=true`.
+- The direct Supabase runtime owns durable visitor lookup, conversation ownership/history, shared rate limiting, message/insight/source/analytics writes, and dashboard analytics fields.
+- Removed the production dependency on local-to-Supabase snapshot synchronization and prevented standalone event tracking from mutating local JSON in Supabase mode.
+- Prompt publish/rollback RPCs are service-role-only `security definer` functions and atomically write governance state plus audit evidence.
+- Added `tests/unit/supabase-fail-closed.test.ts`; the subsequent full suite passes 80/80 unit tests and 14/14 core integration tests.
+- Browser verification against the reused registered preview `http://127.0.0.1:3000`: product 16/16, agent/embed 18/18, dashboard 8/8; two live-Supabase governance cases remain skipped.
+- Lint, typecheck, secret scan across 654 files, 25-page production build, and `graphify update .` pass.
+- Landing page remains byte-identical to `nabih-landing-3.html` at SHA-256 `EA9B6C98279F23A3EB4320811D0DF97125A3114B2A8E668985AFCF75DDFB8083`.
+- Client handoff remains blocked because the live Supabase project/credentials are unavailable and production cannot yet prove Auth/RLS/runtime/governance.
+
+## 2026-08-13 - Destructive Prompt Governance Confirmation
+
+- Added an accessible reusable confirmation submit control for prompt governance actions.
+- Publish now warns that shopper responses change immediately; rollback identifies audit logging; archive requires explicit confirmation.
+- Updated the live-Supabase governance E2E flow to accept and assert confirmation dialogs.
+- Added a unit guard proving publish, rollback, and archive all remain confirmation-protected.
+- Focused lint, typecheck, and eight governance/versioning tests pass.
+- Rechecked external access: the stored Supabase project hostname still returns DNS `NXDOMAIN`, Supabase CLI has no access token, Vercel still has no Supabase variables, and production still reports the older demo catalog runtime.
+
+## 2026-08-13 - Integration Boundary And Founder Governance Hardening
+
+- OAuth initiation is now a same-origin POST; GET returns 405 and cannot mutate integration state.
+- OAuth integration preparation/state creation and callback consumption/pending-vault transitions are atomic and single-use.
+- Webhook tenant routing derives external store identity only from the signed body, never an unsigned merchant header; enqueueing is atomic and idempotent per integration/event.
+- Catalog sync requires same-origin requests, store/credential references, successful job creation, and returns sanitized public failures.
+- The new OAuth/webhook RPCs are `security definer`, revoked from public/anon/authenticated, and granted only to `service_role`.
+- Supabase-selected Founder global prompt/model governance is authoritative in a service-only singleton table, fails closed when unavailable, and updates atomically with its audit record. Blob/file governance remains local-mode only.
+- Global configuration changes require confirmation and validate developer-guidance length server-side.
+- Lint/typecheck, 83/83 unit tests, 14/14 core integration tests, 4/4 focused embed E2E, and the 654-file secret scan pass.
+
 ## 2026-07-07 - Agent Readiness Loop Started
 
 - Goal attempted: make the product-page agent ready for client handoff with Supabase backend wiring, Ting-style orchestration, CI/E2E backend coverage, and English/Arabic response evaluation.
@@ -917,3 +969,154 @@
 - Live quality matrix: 102/102 cases passed, 9.82/10 average, 100% known-fact accuracy, 100% missing-data fallback correctness, 100% safe refusal handling, zero hard failures.
 - Preview ownership: preview-server-manager started `http://127.0.0.1:3004` with `duplicateCount=0`; it was cleaned up before the final production build.
 - Graphify: `graphify update .` completed after the code changes.
+
+## 2026-08-03 - Supabase Merchant Dashboard Sprint
+
+- Reconciled the active nested pnpm/Next.js repository and used Graphify for the first-pass architecture map.
+- Added a versioned 18-table merchant schema plus analytics, UUID ownership, indexes, updated-at triggers, role helper functions, and restrictive RLS. Earlier text-key demo tables are preserved under legacy names when present.
+- Updated the ignored local environment to the supplied Supabase project without committing secrets; migrated and idempotently seeded the live project.
+- Added explicit Supabase/local backend selection, typed browser/server/service seams, Supabase dashboard data hydration, and production Auth enforcement with local test fallback.
+- Added merchant roles, login/callback/logout, viewer prompt isolation, advanced route guards, and disposable-user RLS verification.
+- Implemented the Agent, Advanced Settings, Prompt Versions, Playground, QA, and Audit Log routes; added audited draft/QA/publish/rollback/archive actions and non-removable runtime guardrails.
+- Wired the live agent to active Supabase prompt version 1 and durable conversation/message/insight/audit writes. Verified a real live conversation and its dashboard transcript.
+- Added conversation filters and telemetry, transcript copying, quality ratings, admin notes, manual insights, insight status workflow, and product completeness scores.
+- QA loop results to date: typecheck passed; 45 unit tests passed; 11 integration tests passed; production build passed; Supabase RLS verification passed; live governance E2E passed.
+- Preview Server Manager started the registered production preview at `http://127.0.0.1:3001` with duplicateCount=0.
+- Next: final full E2E, active-config quality matrix, production rebuild, Graphify update, and handoff status flip.
+
+## 2026-08-03 - Supabase Dashboard Client Handoff Completion
+
+- Completed the full `pnpm run handoff:check` with 16 product E2E, 14 agent E2E, 6 dashboard E2E, 32 screenshot captures, zero product-audit findings, zero dashboard-audit findings, and a passing final production build.
+- Completed the regular cross-device browser run with 36 passing cases; the two prompt-governance cases were intentionally run separately and passed on Chromium and mobile.
+- Completed live active-config QA run `9f405e85-1605-481c-937e-9f9eb79b3442`: 102/102 cases passed, 9.72/10 average, 100% at 8+, 100% known-fact accuracy, 100% missing-data fallback correctness, 100% safe-refusal handling, and zero hard failures.
+- Confirmed 45 unit tests, 11 integration tests, lint, typecheck, secret scanning, live migration/seed, disposable-user RLS verification, anonymous prompt isolation, and durable live widget persistence all passed.
+- Confirmed prompt governance end to end: draft, QA, publish, rollback, and archive. Prompt version 1 is active via the audited rollback path.
+- Registered production preview remains `http://127.0.0.1:3001` with duplicateCount=0.
+- Client handoff status is ready. Production deployment still requires the real client owner email/Auth UUID and `NEXT_PUBLIC_DEMO_MODE=false`; Salla/Zid connectivity remains future work.
+
+## 2026-08-03 - Requirement-by-Requirement Completion Audit and Hardening
+
+- Audited the full sprint specification against current source, live Supabase state, browser behavior, and test coverage instead of relying on the earlier handoff flag.
+- Closed missing feature gaps: versioned tone/language/model/context/objection/fallback/guardrail settings; live eight-case draft QA with persisted cases; playground QA-case saving; actual prompt comparison; content suggestions; insight evidence links; most-active-product KPIs; team roles; integration scopes; and audited retention/refresh preferences.
+- Hardened service-role conversation review actions with explicit `merchant_id` constraints and hid mutation controls from viewer roles.
+- Replaced static dashboard QA claims with real English/Arabic fact, hesitation, objection, missing-data, injection, prompt-disclosure, and payment-data evaluation using the exact candidate configuration.
+- Fixed an intermittent Arabic catalog-grounding failure by adding a second live repair and advancing twice-under-grounded output to the next configured live provider route. The focused Arabic integration suite passed five consecutive reruns.
+- Live governance passed on Chromium and mobile, including behavior-setting publish/rollback, playground QA persistence, audited settings changes, and restoration of prompt version 1.
+- Supabase RLS verification passed again. Active-config QA run `69024e5a-4604-4002-b8e1-3a7c549e9eaa` passed 102/102 at 9.66/10 with zero hard failures.
+- Final `pnpm run handoff:check` passed: secret scan across 600 files, schema/type/RLS checks, lint, typecheck, 47 unit tests, 11 integration tests, 16 product E2E, 14 agent E2E, 6 dashboard E2E, 32 screenshots, zero product/dashboard audit findings, 102-case quality matrix at 9.68/10, and production build.
+- Preview Server Manager started the rebuilt production preview at `http://127.0.0.1:3001` (PID 24984) with duplicateCount=0.
+
+## 2026-08-03 - Merchant-Agnostic Platform Foundation Completion
+
+- Corrected the canonical scope: the demo storefront is only the fake pilot merchant and QA/catalog harness; the deliverable is the Supabase-backed AI Sales Agent platform for Salla/Zid merchants.
+- Added the merchant-scoped public widget/embed surface, Supabase tenant/product resolution, provider manifests and normalized catalog boundary, Salla/Zid OAuth/webhook/sync placeholders, integration readiness UI, and validated CSV import fallback.
+- Added and applied `202608030002_platform_foundation.sql` for merchant public keys/origins, provider-aware integrations and sync jobs, webhook events, hashed OAuth state, indexes, grants, and RLS. Live migration, idempotent seed, platform verification, and disposable-user RLS verification passed.
+- Hardened runtime ownership: conversation continuation now checks merchant, product, and anonymous visitor; telemetry and insight aggregation are merchant-scoped; transient Supabase catalog queries retry; external embed configuration exposes no prompt or server secrets and unapproved providers fail closed.
+- Added platform unit/integration/E2E evidence and updated stale integration-status assertions to verify the current fail-closed OAuth/token-vault contract.
+- Final `pnpm run handoff:check` passed in the clean build/server sequence: secret scan across 617 files, schema/platform/RLS verification, lint, typecheck, 52 unit tests, 11 handoff integration tests, 16 product E2E, 18 agent/embed E2E, 6 dashboard E2E, 102/102 live quality cases at 9.69/10, 32 screenshots, zero product/dashboard audit findings, and two production builds.
+- Preview Server Manager started the final healthy production preview at `http://127.0.0.1:3001` (PID 20348) with `duplicateCount=0`.
+- Handoff boundary: production still requires the real owner email/Auth UUID, `NEXT_PUBLIC_DEMO_MODE=false`, production domain/secrets/origins, and deployment. Salla/Zid remain an external integration milestone, not a connected feature claim.
+
+## 2026-08-13 - Master Checklist Re-Audit and Local Recovery
+
+- Re-audited the complete 40-section product gate and corrected the project identity/docs: Maison Vert is only the demo merchant; Nbeh is the merchant-installable Salla/Zid AI Sales Agent platform.
+- Found that the previous Supabase hostname no longer resolves and that Vercel Production has no Supabase variables. Replaced stale handoff claims with `READY_FOR_CLIENT_HANDOFF=false` and a precise recovery runbook.
+- Hardened production backend selection and the handoff gate so production cannot silently use local/demo persistence and local evidence cannot satisfy the Supabase handoff requirement.
+- Recreated one registered preview at `http://127.0.0.1:3000` with explicit local/demo settings and freshly seeded data; no duplicate same-project server was created.
+- Corrected stale E2E routing and branded-widget assertions without changing the exact landing asset. Product E2E passed 16/16, agent/embed 18/18, dashboard 8/8, and full local E2E 42 passed with the two Supabase-only governance cases intentionally skipped.
+- Hardened public and dashboard JSON error boundaries: validation errors are bounded, unexpected service/database failures return generic 503 responses, and browser responses do not echo internal exception text.
+- Updated the live governance browser test for the custom Nbeh dropdown and documented same-origin/server-action CSRF posture.
+- Landing SHA-256 remains `EA9B6C98279F23A3EB4320811D0DF97125A3114B2A8E668985AFCF75DDFB8083`.
+- Current status remains blocked until a reachable Supabase project is migrated/seeded, owner membership and RLS are reverified, production variables are deployed, and `pnpm run handoff:check` passes.
+
+## 2026-08-13 - Privacy-Preserving Abuse Controls and Final Local Regression
+
+- Added a service-role-only `request_rate_limit_buckets` table and atomic `consume_request_rate_limit` RPC with independent `shopper_chat` and `founder_login` scopes.
+- Added a server-only HMAC fingerprint derived only from Vercel's overwritten forwarding header or an explicitly trusted self-hosted proxy. Raw client IPs and forwarding headers are never persisted.
+- Closed shopper `visitorRef` rotation bypass, added HTTP 429/`Retry-After`, and stopped rejected requests from creating conversations, messages, insights, or analytics artifacts.
+- Added independent Founder throttling (8 attempts per 15 minutes) and changed ordinary merchant login to bypass the Founder endpoint before Supabase Auth.
+- Documented the iframe-contained same-origin widget API/CORS boundary and extended the live RLS verifier to prove the abuse table/RPC are unavailable to anonymous and authenticated dashboard clients.
+- Verification: lint passed; typecheck passed; 91 unit tests passed; 25 integration tests passed; production build generated 25/25 static pages; secret scan passed across 661 files; local production E2E passed 42 with exactly two live-Supabase governance cases skipped.
+- Interactive browser QA passed for desktop/mobile login, dashboard navigation, advanced Nbeh settings, and the custom styled dropdown open/keyboard-selection state with no page or console errors.
+- Registered preview was started at `http://127.0.0.1:3000` (PID 26772) through the preview manager with `duplicateCount=0` and explicit local/demo settings.
+- Landing remains byte-identical to `nabih-landing-3.html` at SHA-256 `EA9B6C98279F23A3EB4320811D0DF97125A3114B2A8E668985AFCF75DDFB8083`.
+- Handoff remains blocked solely by the unreachable/missing production Supabase project and its absent Vercel variables; no false readiness flag was set.
+
+## 2026-08-13 - Supabase Account-State Verification
+
+- Rechecked the replacement-backend path without exposing credential values: the Supabase CLI reports no access token, no access token exists in the process/user/machine environment, and the local Supabase config contains telemetry only.
+- Opened a fresh isolated headed browser session at the Supabase dashboard; it remains on the sign-in page, so no Nbeh organization or project ownership can yet be verified.
+- Did not create a project, choose an organization, or configure billable resources because doing so before the intended new Nbeh account is authenticated could place the platform under BTKK1 or another ambiguous owner.
+- Updated the handoff blocker and setup runbook. `READY_FOR_CLIENT_HANDOFF` remains false pending authenticated Nbeh account access, live migration/seed/RLS verification, Vercel Production configuration, deployment, and the complete handoff gate.
+- Re-ran the current external checks: the old Supabase hostname is NXDOMAIN, platform and RLS verification fail at network resolution, the strict handoff command rejects demo mode, and Production health still reports the older `demo_catalog` runtime without the current backend/abuse-control fields.
+- Confirmed Vercel CLI ownership is `nbehsolution-2378` and the production variable inventory still lacks every Supabase credential plus `AGENT_RATE_LIMIT_SECRET`; the commit-candidate secret scan continues to pass across 661 files.
+
+## 2026-08-13 - Founder Playground And Demo Store Discoverability
+
+- Removed the Founder/advanced-user product picker from the Agent Playground. A demo-store product context is attached automatically and remains visible only as a safe context summary after a run.
+- Reframed comparison output as two full Nbeh chat agents: `Live Agent` shows what shoppers see now; `Draft Agent` shows unpublished behavior or an explicit create-draft state when no candidate exists.
+- Added prominent demo-store links in the Playground header/context card, Founder dashboard top bar, and Founder-styled sidebar CTA. All external-tab links use `noopener noreferrer`.
+- Fixed local loopback same-origin validation so `localhost` and `127.0.0.1` are equivalent only when both are loopback with identical protocol and port; production/cross-origin enforcement remains strict.
+- Browser QA passed on desktop and 390px mobile. The demo-store link opens `/store`, and a real playground question renders the Live Agent chat with version/model/safety metadata while the Draft Agent remains a separate waiting state.
+- Focused regression tests, lint, typecheck, and the 25-page production build passed. The registered preview was restarted with the current build at `http://127.0.0.1:3000`, PID 34184, with no Nbeh duplicates.
+- Security incident: a malformed local Windows environment-import diagnostic printed the Vercel Blob read/write token to command output. The ignored export was deleted immediately and no token value was committed or copied into documentation. Before production deployment, the empty private `nbeh-global-config` store was deleted and recreated in `iad1`, rotating the persistent token and reconnecting a fresh encrypted `BLOB_READ_WRITE_TOKEN` to Production and Preview without data loss.
+
+## 2026-08-14 - Vercel Production Deployment
+
+- Deployed the complete current worktree to the existing `nbeh-ai` project under the `nbehsolution-2378` Vercel account and promoted deployment `dpl_3jV26wrVjGDfiCGJ812KTBhBikmB` to `https://www.nbeh.io`.
+- Rotated the previously exposed Blob credential before deployment by deleting the exact empty private store and recreating `nbeh-global-config` in `iad1`; Vercel connected a fresh token to Production and Preview. The old store had `0B` and `0 files`, so no data was removed.
+- Replaced the empty/mismatched Founder credential variables with a fresh random salt, scrypt hash for the requested password, new session secret, and normalized Founder email. Verified the stored non-secret-encrypted values cryptographically before redeploying.
+- Live browser QA passed: Founder login returned 200 and landed on `/dashboard`; Founder/Global Agent identity was visible; `/dashboard/agent/playground` showed the Live Agent and Draft Agent without a product picker; a real Live Agent prompt returned a grounded answer; and Founder demo-store links opened `/store`.
+- Live route probes passed for `/`, `/store`, `/login`, and `/api/agent/health`. The landing response SHA-256 exactly matches `nabih-landing-3.html` (`EA9B6C98279F23A3EB4320811D0DF97125A3114B2A8E668985AFCF75DDFB8083`).
+- Production health now exposes the current backend/abuse-control fields and truthfully reports `dataBackend=local`, `catalogProvider=demo_catalog`, and configured demo persistence/abuse controls. The deployment is live, but full client handoff remains blocked until the replacement Supabase project is authenticated, migrated, seeded, verified, and configured in Vercel.
+# 2026-08-14 — Dashboard bilingual usability pass
+
+- Added a persistent English/Arabic switch to the authenticated dashboard shell.
+- Added full RTL/LTR switching and Arabic date formatting across dashboard tables and governance history.
+- Localized dashboard navigation, headings, page purposes, filters, custom dropdowns, forms, statuses, empty/error states, pagination, settings, integrations, Founder controls, Playground, QA, and prompt-version actions.
+- Rewrote internal product language into clear user outcomes, including the draft → test → publish workflow and recovery actions.
+- Fixed Audit Log in the local/demo backend by normalizing local audit records instead of requiring Supabase.
+- Browser-audited every dashboard route in both languages and verified Arabic at 390×844 mobile viewport.
+- Verified custom model/provider menus in Arabic and Founder access to the demo store.
+- Passed lint, TypeScript, 27 test files / 123 tests, production build, and commit-candidate secret scan.
+- Deployed Vercel production deployment `dpl_543Qv4rVi4ggYizb41DRPzxgXJQB`, aliased to `https://www.nbeh.io`.
+- Confirmed the production landing page remains byte-identical to `nabih-landing-3.html` (SHA-256 `EA9B6C98279F23A3EB4320811D0DF97125A3114B2A8E668985AFCF75DDFB8083`).
+
+## 2026-08-14 - Demo Store Nbeh Restoration And Automatic Language Detection
+
+- Restored the branded Nbeh launcher on the demo-store homepage; it had only been mounted on product-detail pages. The homepage uses the first demo product as automatic grounding context.
+- Removed the Playground shopper-language control and its visible helper copy. Both the browser and server now derive Arabic or English exclusively from the shopper's latest message; the server ignores any stale or conflicting client locale.
+- Added regression coverage for the homepage widget, absence of the language UI, and server-side latest-message detection.
+- Verification passed: typecheck, lint, secret scan, 17 focused unit/integration tests, production build, Graphify refresh, and live browser checks for Arabic and English Playground replies.
+- Deployed Vercel production deployment `dpl_2DQHHp3Psu37yTSmJRyeXyAuNfxw` to `https://www.nbeh.io`. `/store` exposes and opens `Chat with Nbeh`; `/api/agent/health` returns HTTP 200.
+- Production landing remains byte-identical to `nabih-landing-3.html` at SHA-256 `EA9B6C98279F23A3EB4320811D0DF97125A3114B2A8E668985AFCF75DDFB8083`.
+- `READY_FOR_CLIENT_HANDOFF=false` remains unchanged because production still reports `dataBackend=local` pending the Supabase recovery.
+
+## 2026-08-14 - Product-Aware Playground And Local Governance Reliability
+
+- Diagnosed the production draft failure from Vercel logs: `savePromptDraftAction` entered a Supabase-only write path while Production intentionally runs `DATA_BACKEND=local`, then failed because `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are absent.
+- Added encrypted local/Vercel Blob administration persistence for prompt versions, active-version selection, QA runs, and audit evidence. Vercel uses the existing private Blob connection and `GLOBAL_AGENT_CONFIG_SECRET`; local development uses an ignored machine-local key.
+- Added backend-aware draft, QA, publish, rollback, archive, Playground QA-case, preference, conversation-review, and insight mutations so demo/local operation does not call Supabase.
+- Restored a branded product-page picker to the Agent Playground. Both Live Agent and Draft Agent receive the same selected catalog context, changing products clears stale output, and the demo-product link follows the selection.
+- Replaced the generic dashboard crash screen with a branded recovery boundary and added inline action notices/errors to prompt governance pages.
+- Added a browser regression that creates a draft, selects `Everyday Leather Tote` with a mouse click, verifies the updated product link, tests both agents, and persists the comparison as a QA case.
+- Added encrypted-store unit coverage and made the Arabic quality evaluator accept equivalent grounded catalog terms such as denim, jeans, or selvedge.
+- Verification passed: lint, typecheck, production build, secret scan, 28 test files / 129 tests, focused Chromium browser regression, Graphify refresh, and byte-identical landing verification.
+- Landing SHA-256 remains `EA9B6C98279F23A3EB4320811D0DF97125A3114B2A8E668985AFCF75DDFB8083`.
+- `READY_FOR_CLIENT_HANDOFF=false` remains unchanged because Supabase/Auth/RLS production recovery is still outside this demo/UI reliability release.
+- Fixed the production-only Vercel Blob conditional-write edge case by normalizing quoted/weak HTTP ETags before `ifMatch`; the live Playground QA save then returned HTTP 200 with durable QA case/run identifiers.
+- Deployed production `dpl_Gjg4zvVQGF5xj8w9NmhDMLV5yHFW` to `https://www.nbeh.io`.
+- Live Founder verification passed: draft save, full eight-case QA, publish, archive, rollback to version 2, restore version 1, create final draft version 3, mouse product selection, two-agent guardrail comparison, QA-case persistence, and all dashboard route probes. The final live state keeps version 1 active and version 3 as the unpublished Playground draft.
+- Final Production health returned HTTP 200 and the post-deployment Vercel error-log query returned no errors.
+
+## 2026-08-14 - Arabic Dashboard Hydration Reliability
+
+- Reproduced React error `#418` on a production hard load of `/dashboard/agent/advanced` with the Arabic dashboard cookie.
+- Removed the dashboard `MutationObserver` text rewriter that could modify nested client-component text before hydration completed.
+- Added React-rendered client translations and server-rendered page translations across all 14 dashboard page entry points, preserving RTL/LTR behavior and language switching without DOM mutation.
+- Added a hard-load regression that asserts Arabic HTML direction and headings, navigates to the product-aware Playground, and fails on browser console, page, request, or hydration errors.
+- Verification passed: lint, TypeScript, 103 unit tests, 27 integration/scenario/quality tests, six local dashboard browser flows with one Supabase-only case skipped, production build, secret scan, Graphify refresh, and byte-identical landing verification.
+- Deployed production `dpl_D4NmdzxaV2GqNv83mEKayRJ3Gw8Q` to `https://www.nbeh.io`.
+- Live Founder verification produced no errors after the Arabic toggle, client navigation, or hard Arabic navigation. Production health returned HTTP 200 and the post-deployment Vercel error-log query returned no errors.
+- Production landing remains byte-identical to `nabih-landing-3.html` at SHA-256 `EA9B6C98279F23A3EB4320811D0DF97125A3114B2A8E668985AFCF75DDFB8083`.
+- `READY_FOR_CLIENT_HANDOFF=false` remains unchanged because the Supabase/Auth/RLS recovery is separate from this demo/UI reliability release.

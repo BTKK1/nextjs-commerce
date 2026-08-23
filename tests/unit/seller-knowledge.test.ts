@@ -36,6 +36,6 @@ describe("seller knowledge provider", () => {
     expect(prompt).toContain("777");
     expect(prompt).toContain("Dashboard-only alpaca lining");
     expect(prompt).toContain("Dashboard knowledge: ships after merchant confirmation.");
-    expect(prompt).toContain("Answers must come from the seller dashboard knowledgebase.");
+    expect(prompt).toContain("Answer only from verified product, catalog, store, and merchant context");
   });
 });

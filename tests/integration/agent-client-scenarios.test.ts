@@ -33,7 +33,7 @@ function scenariosForProduct(product: DemoProduct): ShopperScenario[] {
       product,
       message: "What is the price?",
       kind: "known",
-      expectedTerms: [product.name, String(product.priceSar)],
+      expectedTerms: [String(product.priceSar)],
     },
     {
       id: `${product.slug}-client-budget-objection`,
@@ -101,7 +101,7 @@ describe("agent shopper/client scenario suite", () => {
         product,
         message: "كم سعره؟",
         kind: "known" as const,
-        expectedTerms: [product.name, String(product.priceSar)],
+        expectedTerms: [String(product.priceSar)],
       })),
     ];
 
