@@ -176,8 +176,6 @@ export async function installSallaStore(payload: unknown): Promise<{ merchantId:
     return { merchantId, integrationId, productsImported: products.length };
   }
   const supabase = createServiceClient();
-  const profile = await getSallaStoreProfile(credentialRef, storeId);
-  if (profile.storeId !== storeId) throw new Error("The signed Salla store and access token do not identify the same store.");
   const { data: connected } = await supabase.from("platform_integrations").select("*").eq("provider", "salla").eq("external_store_id", storeId).maybeSingle();
   let merchantId = text(connected?.merchant_id);
   let integrationId = text(connected?.id);
@@ -194,23 +192,40 @@ export async function installSallaStore(payload: unknown): Promise<{ merchantId:
     merchantId = randomUUID();
     integrationId = randomUUID();
     const { error: merchantError } = await supabase.from("merchants").insert({
-      id: merchantId, business_name: profile.name, display_name: profile.name, email: profile.email,
-      platform_type: "salla", public_key: publicKey(storeId), allowed_widget_origins: profile.allowedOrigins, status: "active",
+      id: merchantId, business_name: `Salla Store ${storeId}`, display_name: `Salla Store ${storeId}`, email: null,
+      platform_type: "salla", public_key: publicKey(storeId), allowed_widget_origins: [], status: "active",
     });
     if (merchantError) throw merchantError;
-    await provisionDefaultAgent(merchantId, profile.name, "Salla");
     const { error: integrationError } = await supabase.from("platform_integrations").insert({
       id: integrationId, merchant_id: merchantId, provider: "salla", status: "pending",
-      scopes: [], external_store_id: storeId, provider_config: { oauth_mode: "easy" },
+      scopes: [], external_store_id: storeId, provider_config: { oauth_mode: "easy", token_encrypted: true },
     });
     if (integrationError) throw integrationError;
   }
 
   const now = new Date().toISOString();
   const scopes = text(data.scope).split(/\s+/).filter(Boolean);
+  const tokenExpiresAt = normalizeSallaExpiry(data.expires_in ?? data.expires);
+  let activeCredentialRef = credentialRef;
+  // Persist the signed authorization credential before making any downstream
+  // Salla API request. A temporary provider failure must not force the
+  // merchant through authorization again or discard the only issued token.
+  const { error: pendingCredentialError } = await supabase.from("platform_integrations").update({
+    status: "pending", external_store_id: storeId, encrypted_credential_ref: credentialRef,
+    scopes, provider_config: { oauth_mode: "easy", token_encrypted: true, token_expires_at: tokenExpiresAt },
+    metadata_json: { note: "Salla authorization received; validating the store and importing its catalog." }, updated_at: now,
+  }).eq("id", integrationId).eq("merchant_id", merchantId);
+  if (pendingCredentialError) throw pendingCredentialError;
+
+  const profile = await getSallaStoreProfile(activeCredentialRef, storeId, async (nextRef) => {
+    activeCredentialRef = nextRef;
+    const { error } = await supabase.from("platform_integrations").update({ encrypted_credential_ref: nextRef, updated_at: new Date().toISOString() }).eq("id", integrationId).eq("merchant_id", merchantId);
+    if (error) throw error;
+  });
+  if (profile.storeId !== storeId) throw new Error("The signed Salla store and access token do not identify the same store.");
   const { error: connectionError } = await supabase.from("platform_integrations").update({
-    status: "connected", connected_at: now, external_store_id: storeId, encrypted_credential_ref: credentialRef,
-    scopes, provider_config: { oauth_mode: "easy", token_encrypted: true, token_expires_at: normalizeSallaExpiry(data.expires_in ?? data.expires) },
+    status: "connected", connected_at: now, external_store_id: storeId, encrypted_credential_ref: activeCredentialRef,
+    scopes, provider_config: { oauth_mode: "easy", token_encrypted: true, token_expires_at: tokenExpiresAt },
     metadata_json: { note: "Connected through Salla Easy Mode.", store_url: profile.url }, updated_at: now,
   }).eq("id", integrationId).eq("merchant_id", merchantId);
   if (connectionError) throw connectionError;
@@ -230,7 +245,7 @@ export async function installSallaStore(payload: unknown): Promise<{ merchantId:
       merchantId,
       integrationId,
       externalStoreId: storeId,
-      credentialRef,
+      credentialRef: activeCredentialRef,
       persistCredentialRef: async (nextRef) => {
         const { error } = await supabase.from("platform_integrations").update({ encrypted_credential_ref: nextRef, updated_at: new Date().toISOString() }).eq("id", integrationId).eq("merchant_id", merchantId);
         if (error) throw error;
