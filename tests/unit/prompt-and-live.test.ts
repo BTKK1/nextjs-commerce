@@ -114,6 +114,10 @@ describe("prompt builder and live provider config", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(answer.providerRoute).toContain("openrouter(rate_limited)->openrouter(ok)");
     expect(answer.model).toBe("stealth/ox-alpha");
+    const oxRequest = JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body)) as {
+      reasoning?: { effort?: string; exclude?: boolean };
+    };
+    expect(oxRequest.reasoning).toEqual({ effort: "low", exclude: true });
   });
 
   it("includes current product context and only scoped related products", () => {

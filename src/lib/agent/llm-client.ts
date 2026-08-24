@@ -607,6 +607,9 @@ async function callProvider(
       headers,
       body: JSON.stringify({
         model: route.model,
+        ...(route.provider === "openrouter" && route.model === "stealth/ox-alpha"
+          ? { reasoning: { effort: "low", exclude: true } }
+          : {}),
         temperature: runtimeConfig?.temperature ?? 0.25,
         max_tokens: runtimeConfig?.maxTokens ?? 420,
         messages: [
