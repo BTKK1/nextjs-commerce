@@ -13,6 +13,7 @@ export const PROVIDER_LABELS: Record<ProductAgentProvider, string> = {
 
 export const SELECTABLE_MODELS: Record<ProductAgentProvider, readonly SelectableModel[]> = {
   openrouter: [
+    { id: "stealth/ox-alpha", label: "OX Alpha", description: "Nbeh production model · Recommended" },
     { id: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", description: "Fast and economical · Recommended" },
     { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Balanced speed and reasoning" },
     { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", description: "Higher reasoning quality" },

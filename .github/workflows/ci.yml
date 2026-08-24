@@ -118,6 +118,8 @@ jobs:
       DATA_BACKEND: local
       SUPABASE_AGENT_ENABLED: "false"
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_ENFORCE_KEY_SHA256: "true"
+      OPENROUTER_KEY_SHA256: ${{ vars.OPENROUTER_KEY_SHA256 }}
       CONTINUOUS_TEST_MODEL: stealth/ox-alpha
       SALES_AGENT_MODEL: stealth/ox-alpha
       SALES_AGENT_DISABLE_FALLBACKS: "true"
@@ -145,7 +147,7 @@ jobs:
 
       - name: Verify OX Alpha is the only configured route
         run: |
-          node --import ts-node/esm -e "import('./src/lib/ai/model-config.ts').then(({getModelConfig}) => { const routes = getModelConfig().routes; if (routes.length !== 1 || routes[0].provider !== 'openrouter' || routes[0].model !== 'stealth/ox-alpha') throw new Error('Continuous test model route is not locked to OX Alpha'); console.log('Model route locked to OpenRouter:stealth/ox-alpha'); })"
+          node --import ts-node/esm -e "import('./src/lib/ai/model-config.ts').then(({getModelConfig}) => { const config = getModelConfig(); const routes = config.routes; if (!config.credentialGuardEnabled) throw new Error('Saleh OpenRouter credential guard is disabled'); if (routes.length !== 1 || routes[0].provider !== 'openrouter' || routes[0].model !== 'stealth/ox-alpha') throw new Error('Continuous test model route is not locked to OX Alpha'); console.log('Saleh credential guard active; model route locked to OpenRouter:stealth/ox-alpha'); })"
 
       - name: Continuous OX Alpha smoke
         id: ox_alpha_smoke

@@ -8,6 +8,7 @@ export interface ModelPricing {
 // application code makes historical wallet estimates reproducible instead of
 // changing whenever a provider updates its public catalog.
 export const MODEL_PRICING_USD: Record<string, ModelPricing> = {
+  "stealth/ox-alpha": { inputUsdPerMillionTokens: 0, outputUsdPerMillionTokens: 0, source: "openrouter" },
   "google/gemini-2.5-flash-lite": { inputUsdPerMillionTokens: 0.1, outputUsdPerMillionTokens: 0.4, source: "openrouter" },
   "google/gemini-2.5-flash": { inputUsdPerMillionTokens: 0.3, outputUsdPerMillionTokens: 2.5, source: "openrouter" },
   "google/gemini-2.5-pro": { inputUsdPerMillionTokens: 1.25, outputUsdPerMillionTokens: 10, source: "openrouter" },

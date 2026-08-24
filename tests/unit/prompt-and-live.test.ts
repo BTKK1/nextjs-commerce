@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import { demoProducts } from "@/data/catalog";
 import { formatTemplate, storeCopy } from "@/components/saleh-demo/store-i18n";
 import { evaluateOutputGuardrails } from "@/lib/agent/guardrails";
@@ -22,6 +23,14 @@ function restoreEnv(key: string, value: string | undefined) {
 }
 
 describe("prompt builder and live provider config", () => {
+  beforeEach(() => {
+    // Unit tests use synthetic provider credentials and explicitly opt into
+    // fallback scenarios. Production/local runtime keeps the guard enabled.
+    vi.stubEnv("OPENROUTER_ENFORCE_KEY_SHA256", "false");
+    vi.stubEnv("SALES_AGENT_DISABLE_FALLBACKS", "false");
+    vi.stubEnv("PRODUCT_AGENT_DISABLE_FALLBACKS", "false");
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
@@ -64,6 +73,23 @@ describe("prompt builder and live provider config", () => {
     expect(getModelConfig().routes).toEqual([
       { provider: "openrouter", model: "stealth/ox-alpha" },
     ]);
+  });
+
+  it("fails closed when the OpenRouter key is not Saleh's approved credential", () => {
+    vi.stubEnv("OPENROUTER_API_KEY", "unapproved-openrouter-key");
+    vi.stubEnv("OPENROUTER_ENFORCE_KEY_SHA256", "true");
+    vi.stubEnv("OPENROUTER_KEY_SHA256", createHash("sha256").update("approved-saleh-key").digest("hex"));
+
+    expect(() => getModelConfig()).toThrow("not the approved Saleh credential");
+  });
+
+  it("accepts the approved Saleh credential fingerprint", () => {
+    const approvedKey = "approved-saleh-key";
+    vi.stubEnv("OPENROUTER_API_KEY", approvedKey);
+    vi.stubEnv("OPENROUTER_ENFORCE_KEY_SHA256", "true");
+    vi.stubEnv("OPENROUTER_KEY_SHA256", createHash("sha256").update(approvedKey).digest("hex"));
+
+    expect(getModelConfig().credentialGuardEnabled).toBe(true);
   });
 
   it("retries transient failures on the same locked model without using a fallback", async () => {

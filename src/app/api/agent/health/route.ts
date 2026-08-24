@@ -44,6 +44,7 @@ export async function GET() {
     providerRoute: modelConfig.routes.map((route) => `${route.provider}:${route.model}`),
     promptVersion: PRODUCT_AGENT_PROMPT_VERSION,
     openrouterKeyConfigured: Boolean(modelConfig.apiKey),
+    openrouterCredentialGuardEnabled: modelConfig.credentialGuardEnabled,
     dataBackend,
     persistenceConfigured,
     databaseReachable,
