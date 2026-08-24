@@ -107,6 +107,22 @@ describe("agent response evaluation", () => {
     expect(evaluation.passed, [...evaluation.findings, ...evaluation.hardFailures].join(",")).toBe(true);
   });
 
+  it("treats Arabic-Indic numerals as the same catalog fact", () => {
+    const product = demoCatalogProvider.getProductBySlug("everyday-leather-tote");
+    expect(product).toBeTruthy();
+
+    const evaluation = evaluateAgentResponse({
+      product: product!,
+      message: "كم سعره؟",
+      answer: "سعره ٣٢٠ دولار، ومتوفر حاليًا.",
+      expectedTerms: ["320"],
+      kind: "known",
+    });
+
+    expect(evaluation.hardFailures).not.toContain("known_catalog_question_missing_required_fact");
+    expect(evaluation.hardFailures).not.toContain("catalog_price_or_currency_missing");
+  });
+
   it("passes missing-field fallback scoring", async () => {
     const productSlug = "atelier-wool-coat";
     const product = demoCatalogProvider.getProductBySlug(productSlug);

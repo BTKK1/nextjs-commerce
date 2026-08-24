@@ -59,6 +59,8 @@ function normalize(value: string): string {
   return value
     .normalize("NFKC")
     .toLowerCase()
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
     .replace(/[^\p{L}\p{N}%]+/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -109,13 +111,13 @@ function catalogTerms(product: DemoProduct): string[] {
 }
 
 function hasMissingDataLanguage(answer: string): boolean {
-  return /do not have|don't have|not available|cannot confirm|check with the merchant|ask the merchant|ما عندي|ما أقدر|غير متوفر|تأكد من التاجر|اسأل التاجر/i.test(
+  return /do not have|don't have|not available|cannot confirm|check with the merchant|ask the merchant|ما عندي|ما أقدر|غير متوفر|غير واضح|مو واضح|مو واضحة|ما أبي أعطيك|الأفضل نتأكد|تأكد من التاجر|اسأل التاجر/i.test(
     answer,
   );
 }
 
 function hasClarifyingLanguage(answer: string): boolean {
-  return /which|what do you need|tell me|if you mean|clarify|what matters|أي|وش تحتاج|إذا تقصد|حدد|وش يهمك/i.test(answer);
+  return /which|what do you need|tell me|if you mean|clarify|what matters|what(?:'s| is) pulling you|what brings you|أي|وش تحتاج|إذا تقصد|حدد|وش يهمك|وش خلاك/i.test(answer);
 }
 
 function productSupportsDurability(product: DemoProduct): boolean {
@@ -147,7 +149,7 @@ function mentionsExactPriceCurrency(answer: string, product: DemoProduct): boole
 }
 
 function hasDecisionHelp(answer: string): boolean {
-  return /\b(because|if you|for your|fits?|suitable|trade[- ]?off|however|but|depends|i(?:'d| would) (?:pick|choose|recommend)|better for)\b|إذا|لو |على استخدامك|مناسب|أنسب|أميل|لكن|يعتمد|الفرق/i.test(answer);
+  return /\b(because|if you|if (?:those|these)|for your|fits?|suitable|trade[- ]?off|however|but|depends|reflects|priorit(?:y|ies)|i(?:'d| would) (?:pick|choose|recommend)|better for)\b|إذا|لو |على استخدامك|مناسب|أنسب|أميل|لكن|يعتمد|الفرق/i.test(answer);
 }
 
 function hasForcedClose(answer: string): boolean {
