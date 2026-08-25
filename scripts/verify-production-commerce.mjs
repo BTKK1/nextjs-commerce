@@ -51,7 +51,11 @@ async function waitForExpectedDeployment() {
     try {
       const result = await request("/api/agent/health");
       latest = result.payload;
-      if (result.response.ok && latest?.status === "ok" && (!expectedGitSha || latest.buildId === expectedGitSha)) return latest;
+      // A provider outage deliberately makes the health route return 503. Once
+      // the expected build is live and its database is reachable, stop waiting
+      // and let the assertions below report the exact provider failure instead
+      // of hiding it behind a misleading deployment timeout.
+      if (latest?.databaseReachable === true && (!expectedGitSha || latest.buildId === expectedGitSha)) return latest;
     } catch {
       // Vercel may briefly return no deployment while an alias is moving.
     }
@@ -136,7 +140,15 @@ async function main() {
   assert(health.databaseReachable === true, "Production database is unreachable.");
   assert(health.persistenceConfigured === true, "Production persistence is not configured.");
   assert(health.commerceProvidersConfigured === true, "Salla or Zid production configuration is incomplete.");
-  assert(health.commerceRuntimeHealthy === true, "A production Salla or Zid connection has lost its catalog runtime.");
+  const degradedProviders = Array.isArray(health.commerceRuntime)
+    ? health.commerceRuntime
+      .filter((provider) => !provider?.connected || !provider?.catalogReady)
+      .map((provider) => `${provider?.provider || "unknown"}(connected=${Boolean(provider?.connected)},catalogReady=${Boolean(provider?.catalogReady)})`)
+    : [];
+  assert(
+    health.commerceRuntimeHealthy === true,
+    `A production commerce runtime is degraded${degradedProviders.length ? `: ${degradedProviders.join(", ")}` : "."}`,
+  );
 
   const zid = platforms.find((platform) => platform.provider === "zid");
   if (zid) zid.productRef = await discoverCurrentZidProductRef(zid);

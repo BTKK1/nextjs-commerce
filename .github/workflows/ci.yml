@@ -179,12 +179,42 @@ jobs:
             .local/agent-quality-results.json
           if-no-files-found: ignore
 
+  deploy-production:
+    name: Deploy verified commit to Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: verify
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Deploy production
+        id: deploy
+        run: |
+          deployment_url=$(npx --yes vercel@54.9.1 deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "Deployed commit $GITHUB_SHA to $deployment_url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Confirm deployed commit metadata
+        run: |
+          echo "Expected runtime build: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Production alias: https://www.nbeh.io" >> "$GITHUB_STEP_SUMMARY"
+
   production-commerce-gate:
     name: Production Salla + Zid gate
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: verify
-    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    needs: [verify, deploy-production]
+    if: ${{ always() && needs.verify.result == 'success' && (github.event_name == 'schedule' || needs.deploy-production.result == 'success') }}
     environment: production
     env:
       EXPECTED_GIT_SHA: ${{ github.sha }}
