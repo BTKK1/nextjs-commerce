@@ -197,6 +197,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Ensure Vercel Git integration
+        run: npx --yes vercel@54.9.1 git connect https://github.com/BTKK1/nextjs-commerce.git --non-interactive --token="${{ secrets.VERCEL_TOKEN }}"
+
       - name: Deploy production
         id: deploy
         run: |
