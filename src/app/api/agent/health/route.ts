@@ -22,17 +22,37 @@ export async function GET() {
     ? true
     : hasSupabaseServiceConfig() && process.env.SUPABASE_AGENT_ENABLED === "true" && abuseControlsConfigured;
   let databaseReachable = dataBackend === "local";
+  let commerceRuntimeHealthy = dataBackend === "local";
+  let commerceRuntime = ["salla", "zid"].map((provider) => ({ provider, connected: dataBackend === "local", catalogReady: dataBackend === "local" }));
   if (persistenceConfigured && dataBackend === "supabase") {
     try {
-      const { error } = await createServiceClient().from("merchants").select("id").limit(1);
-      databaseReachable = !error;
+      const supabase = createServiceClient();
+      const [merchantResult, integrationResult, productResult] = await Promise.all([
+        supabase.from("merchants").select("id").limit(1),
+        supabase.from("platform_integrations").select("merchant_id,provider,status,external_store_id,encrypted_credential_ref,last_synced_at").in("provider", ["salla", "zid"]),
+        supabase.from("products").select("merchant_id,platform").in("platform", ["salla", "zid"]),
+      ]);
+      databaseReachable = !merchantResult.error && !integrationResult.error && !productResult.error;
+      if (databaseReachable) {
+        const products = productResult.data ?? [];
+        commerceRuntime = ["salla", "zid"].map((provider) => {
+          const connected = (integrationResult.data ?? []).filter((row) => row.provider === provider && row.status === "connected");
+          const ready = connected.some((row) => Boolean(row.external_store_id)
+            && Boolean(row.encrypted_credential_ref)
+            && Boolean(row.last_synced_at)
+            && products.some((product) => product.platform === provider && product.merchant_id === row.merchant_id));
+          return { provider, connected: connected.length > 0, catalogReady: ready };
+        });
+        commerceRuntimeHealthy = commerceRuntime.every((provider) => provider.connected && provider.catalogReady);
+      }
     } catch {
       databaseReachable = false;
+      commerceRuntimeHealthy = false;
     }
   }
   const commerceProviders = [getProviderReadiness("salla"), getProviderReadiness("zid")];
   const commerceProvidersConfigured = dataBackend === "local" || commerceProviders.every((provider) => provider.credentialsConfigured && provider.webhookConfigured);
-  const status = persistenceConfigured && databaseReachable && commerceProvidersConfigured ? "ok" : "degraded";
+  const status = persistenceConfigured && databaseReachable && commerceProvidersConfigured && commerceRuntimeHealthy ? "ok" : "degraded";
   const catalogProvider = dataBackend === "local" ? getCatalogProvider().provider : "supabase";
 
   return NextResponse.json({
@@ -51,6 +71,8 @@ export async function GET() {
     abuseControlsConfigured,
     commerceProvidersConfigured,
     commerceProviders: commerceProviders.map((provider) => ({ provider: provider.provider, ready: provider.credentialsConfigured && provider.webhookConfigured })),
+    commerceRuntimeHealthy,
+    commerceRuntime,
     catalogProvider,
     loggingEnabled: persistenceConfigured,
     insightsEnabled: persistenceConfigured,

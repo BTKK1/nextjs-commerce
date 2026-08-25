@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 let serviceClient: unknown;
 let dashboardIdentity: Record<string, unknown> | null;
 let syncCatalog: ReturnType<typeof vi.fn>;
+let replaceCommerceProducts: (...args: unknown[]) => Promise<void>;
 
 vi.mock("@/utils/supabase/server", () => ({
   createServiceClient: () => serviceClient,
@@ -31,6 +32,10 @@ vi.mock("@/lib/catalog/supabase-mapper", () => ({
   catalogProductToSupabaseRow: (product: unknown) => product,
 }));
 
+vi.mock("@/lib/integrations/catalog-replacement", () => ({
+  replaceCommerceProducts: (...args: unknown[]) => replaceCommerceProducts(...args),
+}));
+
 function responseBuilder(result: { data?: unknown; error?: unknown }) {
   const resolved = { data: result.data ?? null, error: result.error ?? null };
   const builder: Record<string, unknown> = {
@@ -55,6 +60,7 @@ beforeEach(() => {
     authMode: "supabase",
   };
   syncCatalog = vi.fn();
+  replaceCommerceProducts = vi.fn().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -352,12 +358,52 @@ describe("platform integration route boundaries", () => {
     }), { params: Promise.resolve({ provider: "salla" }) });
 
     expect(response.status).toBe(200);
+    expect(replaceCommerceProducts).toHaveBeenCalledWith("83da73d3-32d4-4f3f-a2db-4bd2ea9f4781", "salla", []);
     await expect(response.json()).resolves.toMatchObject({ status: "success", recordsProcessed: 0 });
     expect(rpc).toHaveBeenCalledWith("record_integration_sync_audit", expect.objectContaining({
       target_provider: "salla",
       target_status: "success",
       target_records_processed: 0,
     }));
+  });
+
+  it("repairs a recoverable pending connection through the same full sync action", async () => {
+    const integrationUpdates: Array<Record<string, unknown>> = [];
+    syncCatalog.mockResolvedValue({ products: [{ externalId: "product-1", slug: "salla-product-1" }], cursor: null, complete: true });
+    serviceClient = {
+      rpc: vi.fn().mockResolvedValue({ error: null }),
+      from(table: string) {
+        if (table === "platform_integrations") {
+          const builder = responseBuilder({ data: {
+            id: "3da190c3-ee41-4533-849a-851490a840d0",
+            status: "pending",
+            connected_at: null,
+            external_store_id: "store-44",
+            encrypted_credential_ref: "vault://provider/credential",
+          } });
+          builder.update = (value: Record<string, unknown>) => {
+            integrationUpdates.push(value);
+            return builder;
+          };
+          return builder;
+        }
+        if (table === "sync_jobs") return responseBuilder({});
+        throw new Error(`Unexpected table: ${table}`);
+      },
+    };
+    const { POST } = await import("@/app/api/dashboard/integrations/[provider]/sync/route");
+    const response = await POST(new Request("https://nbeh.test/api/dashboard/integrations/salla/sync", {
+      method: "POST",
+      headers: { origin: "https://nbeh.test" },
+    }), { params: Promise.resolve({ provider: "salla" }) });
+
+    expect(response.status).toBe(200);
+    expect(replaceCommerceProducts).toHaveBeenCalledWith(
+      "83da73d3-32d4-4f3f-a2db-4bd2ea9f4781",
+      "salla",
+      [expect.objectContaining({ externalId: "product-1" })],
+    );
+    expect(integrationUpdates).toContainEqual(expect.objectContaining({ status: "connected" }));
   });
 });
 

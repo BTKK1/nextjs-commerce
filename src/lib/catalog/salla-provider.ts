@@ -45,7 +45,7 @@ export class SallaCatalogProvider implements CatalogProvider {
     supportsOAuth: true,
     supportsWebhooks: true,
     supportsIncrementalSync: true,
-    requiredScopes: ["products.read"],
+    requiredScopes: ["products.read", "offline_access"],
     environmentVariables: ["SALLA_CLIENT_ID", "SALLA_CLIENT_SECRET", "SALLA_REDIRECT_URI", "SALLA_WEBHOOK_SECRET"],
     documentationUrl: "https://docs.salla.dev/",
   } as const;

@@ -36,7 +36,7 @@ async function request(path, init = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     cache: "no-store",
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(240_000),
   });
   const text = await response.text();
   let payload = null;
@@ -114,12 +114,32 @@ async function verifyPlatform(platform) {
   };
 }
 
+async function discoverCurrentZidProductRef(platform) {
+  const home = await fetch(platform.origin, { cache: "no-store", signal: AbortSignal.timeout(45_000) });
+  assert(home.ok, `Could not load the live Zid storefront (${home.status}).`);
+  const homeHtml = await home.text();
+  const productPath = homeHtml.match(/href=["']([^"']*\/products\/[^"'#?]+)["']/i)?.[1];
+  assert(productPath, "The live Zid storefront did not expose a current product link.");
+  const productUrl = new URL(productPath, platform.origin);
+  const page = await fetch(productUrl, { cache: "no-store", signal: AbortSignal.timeout(45_000) });
+  assert(page.ok, `Could not load a current Zid product page (${page.status}).`);
+  const html = await page.text();
+  const productRef = html.match(/id=["']product-id["'][\s\S]{0,240}?value=["']([a-zA-Z0-9_-]{1,160})["']/i)?.[1]
+    || html.match(/name=["']product_id["'][\s\S]{0,240}?value=["']([a-zA-Z0-9_-]{1,160})["']/i)?.[1];
+  assert(productRef, "The current Zid product page did not expose its product identity.");
+  return productRef;
+}
+
 async function main() {
   const health = await waitForExpectedDeployment();
   assert(health.dataBackend === "supabase", `Production data backend is ${health.dataBackend}.`);
   assert(health.databaseReachable === true, "Production database is unreachable.");
   assert(health.persistenceConfigured === true, "Production persistence is not configured.");
   assert(health.commerceProvidersConfigured === true, "Salla or Zid production configuration is incomplete.");
+  assert(health.commerceRuntimeHealthy === true, "A production Salla or Zid connection has lost its catalog runtime.");
+
+  const zid = platforms.find((platform) => platform.provider === "zid");
+  if (zid) zid.productRef = await discoverCurrentZidProductRef(zid);
 
   const [sallaLoader, zidLoader] = await Promise.all([request("/salla-widget.js"), request("/zid-widget.js")]);
   assert(sallaLoader.response.ok && zidLoader.response.ok, "A commerce widget loader is unavailable.");

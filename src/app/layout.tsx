@@ -1,4 +1,4 @@
-import { Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { GlobalProviders } from "@/providers";
 import { generateMetadataForPage } from "@utils/helper";
@@ -31,9 +31,11 @@ try {
 } catch (_) {}
 `;
 
-const outfit = Outfit({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "600"],
+const outfit = localFont({
+  src: [
+    { path: "./fonts/outfit-400.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/outfit-600.ttf", weight: "600", style: "normal" },
+  ],
   variable: "--font-outfit",
   display: "optional",
   preload: true,

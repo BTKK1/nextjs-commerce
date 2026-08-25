@@ -59,7 +59,7 @@ describe("merchant-installable platform foundation", () => {
     const providers = listCatalogProviders();
     expect(providers.map((provider) => provider.provider)).toEqual(["demo_catalog", "salla", "zid"]);
     expect(getCatalogProvider("demo_catalog").manifest.production).toBe(false);
-    expect(getCatalogProvider("salla").manifest.requiredScopes).toEqual(["products.read"]);
+    expect(getCatalogProvider("salla").manifest.requiredScopes).toEqual(["products.read", "offline_access"]);
     for (const provider of [getCatalogProvider("salla"), getCatalogProvider("zid")]) {
       expect(provider.isConnected).toBe(false);
       expect(provider.manifest.production).toBe(true);

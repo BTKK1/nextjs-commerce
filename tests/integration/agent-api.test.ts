@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import { GET, POST } from "@/app/api/agent/chat/route";
 import { loadDatabase, resetDatabaseForTests } from "@/lib/storage/json-store";
 import { createSeedDatabase } from "@/lib/storage/seed";
@@ -26,7 +27,9 @@ function makeTranscriptRequest(params: Record<string, string>) {
 describe("agent API route", () => {
   beforeEach(() => {
     process.env.AGENT_MODE = "live";
-    process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+    vi.stubEnv("OPENROUTER_API_KEY", "test-openrouter-key");
+    vi.stubEnv("OPENROUTER_ENFORCE_KEY_SHA256", "true");
+    vi.stubEnv("OPENROUTER_KEY_SHA256", createHash("sha256").update("test-openrouter-key").digest("hex"));
     process.env.DEMO_PERSISTENCE = "memory";
     process.env.SUPABASE_AGENT_ENABLED = "false";
     resetDatabaseForTests(createSeedDatabase());
@@ -45,6 +48,7 @@ describe("agent API route", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("creates a conversation, logs messages, and returns a grounded answer", async () => {

@@ -27,8 +27,13 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const parsed = querySchema.safeParse({ merchantKey: url.searchParams.get("merchantKey"), productRef: url.searchParams.get("productRef") });
   if (!parsed.success) return NextResponse.json({ error: "Invalid widget configuration" }, { status: 400, headers });
-  const knowledge = await loadSellerKnowledgeForProduct(parsed.data.productRef, parsed.data.merchantKey);
-  if (!knowledge) return NextResponse.json({ error: "Merchant or product not found" }, { status: 404, headers });
+  let knowledge: Awaited<ReturnType<typeof loadSellerKnowledgeForProduct>>;
+  try {
+    knowledge = await loadSellerKnowledgeForProduct(parsed.data.productRef, parsed.data.merchantKey);
+  } catch {
+    return NextResponse.json({ error: "Product context is temporarily unavailable", code: "catalog_lookup_unavailable" }, { status: 503, headers: { ...headers, "cache-control": "no-store" } });
+  }
+  if (!knowledge) return NextResponse.json({ error: "Product has not been synchronized", code: "product_not_synchronized" }, { status: 404, headers: { ...headers, "cache-control": "no-store" } });
   return NextResponse.json({
     assistant: { name: "Nbeh", arabicName: "نبيه" },
     merchant: { publicKey: knowledge.merchant.publicKey, displayName: knowledge.merchant.name },

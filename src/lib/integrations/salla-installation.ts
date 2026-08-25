@@ -3,8 +3,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { DEFAULT_MERCHANT_AGENT_GUIDANCE } from "@/lib/agent/default-prompt";
 import { readGlobalAgentConfig } from "@/lib/agent/global-config";
 import { getCatalogProvider } from "@/lib/catalog";
-import { catalogProductToSupabaseRow } from "@/lib/catalog/supabase-mapper";
-import { sealSallaCredentials } from "@/lib/integrations/salla-credentials";
+import { replaceCommerceProducts } from "@/lib/integrations/catalog-replacement";
+import { openSallaCredentials, sealSallaCredentials } from "@/lib/integrations/salla-credentials";
 import { getSallaStoreProfile, normalizeSallaExpiry } from "@/lib/integrations/salla-client";
 import { findSallaInstallation, readSallaInstallationState, writeSallaInstallation } from "@/lib/integrations/salla-store";
 import { resolveDataBackend } from "@/lib/backend/mode";
@@ -32,31 +32,12 @@ function founderStoreId(): string | null {
   return process.env.FOUNDER_SALLA_STORE_ID?.trim() || null;
 }
 
-async function replaceSallaProducts(merchantId: string, products: CatalogProduct[]) {
-  const supabase = createServiceClient();
-  const { data: existing, error: existingError } = await supabase
-    .from("products")
-    .select("id,external_id")
-    .eq("merchant_id", merchantId)
-    .eq("platform", "salla");
-  if (existingError) throw existingError;
-  if (products.length) {
-    const { error: productError } = await supabase.from("products").upsert(
-      products.map((product) => catalogProductToSupabaseRow(product, merchantId, "salla")),
-      { onConflict: "merchant_id,platform,slug" },
-    );
-    if (productError) throw productError;
-  }
-  const currentIds = new Set(products.map((product) => product.externalId).filter(Boolean));
-  const staleIds = (existing ?? [])
-    .filter((row) => row.external_id && !currentIds.has(row.external_id))
-    .map((row) => row.id);
-  for (let index = 0; index < staleIds.length; index += 100) {
-    const { error } = await supabase.from("products").delete()
-      .eq("merchant_id", merchantId)
-      .eq("platform", "salla")
-      .in("id", staleIds.slice(index, index + 100));
-    if (error) throw error;
+function existingRefreshToken(credentialRef: unknown): string | null {
+  if (typeof credentialRef !== "string" || !credentialRef) return null;
+  try {
+    return openSallaCredentials(credentialRef).refreshToken;
+  } catch {
+    return null;
   }
 }
 
@@ -147,16 +128,23 @@ export async function installSallaStore(payload: unknown): Promise<{ merchantId:
   const storeId = text(root.merchant || root.store_id || root.merchant_id);
   const accessToken = text(data.access_token);
   if (!storeId || !accessToken) throw new Error("The Salla authorization event is missing its store or access token.");
-  const credentialRef = sealSallaCredentials({
-    accessToken,
-    refreshToken: text(data.refresh_token) || null,
-    issuedAt: Date.now(),
-    expiresAt: normalizeSallaExpiry(data.expires_in ?? data.expires),
-    scope: text(data.scope),
-    tokenType: text(data.token_type) || "bearer",
-  });
+  const incomingRefreshToken = text(data.refresh_token) || null;
+  const sealAuthorization = (refreshToken: string | null) => {
+    if (!refreshToken) {
+      throw new Error("The Salla authorization event is missing its offline refresh token.");
+    }
+    return sealSallaCredentials({
+      accessToken,
+      refreshToken,
+      issuedAt: Date.now(),
+      expiresAt: normalizeSallaExpiry(data.expires_in ?? data.expires),
+      scope: text(data.scope),
+      tokenType: text(data.token_type) || "bearer",
+    });
+  };
   if (resolveDataBackend() === "local") {
     const existing = await findSallaInstallation(storeId);
+    const credentialRef = sealAuthorization(incomingRefreshToken || existingRefreshToken(existing?.credentialRef));
     const installationState = await readSallaInstallationState();
     const merchantId = existing?.merchantId || (installationState.installations.length === 0 ? DEMO_MERCHANT_ID : `salla-${storeId}`);
     const integrationId = `salla-integration-${storeId}`;
@@ -177,6 +165,7 @@ export async function installSallaStore(payload: unknown): Promise<{ merchantId:
   }
   const supabase = createServiceClient();
   const { data: connected } = await supabase.from("platform_integrations").select("*").eq("provider", "salla").eq("external_store_id", storeId).maybeSingle();
+  const credentialRef = sealAuthorization(incomingRefreshToken || existingRefreshToken(connected?.encrypted_credential_ref));
   let merchantId = text(connected?.merchant_id);
   let integrationId = text(connected?.id);
 
@@ -251,7 +240,7 @@ export async function installSallaStore(payload: unknown): Promise<{ merchantId:
         if (error) throw error;
       },
     });
-    await replaceSallaProducts(merchantId, products);
+    await replaceCommerceProducts(merchantId, "salla", products);
     const { error: syncUpdateError } = await supabase.from("platform_integrations").update({ last_synced_at: new Date().toISOString(), status: "connected", updated_at: new Date().toISOString() }).eq("id", integrationId).eq("merchant_id", merchantId);
     if (syncUpdateError) throw syncUpdateError;
     return { merchantId, integrationId, productsImported: products.length };
@@ -268,7 +257,7 @@ export async function installSallaStore(payload: unknown): Promise<{ merchantId:
 export async function refreshSallaStore(storeId: string): Promise<number> {
   if (resolveDataBackend() === "supabase") {
     const supabase = createServiceClient();
-    const { data: integration, error } = await supabase.from("platform_integrations").select("id,merchant_id,external_store_id,encrypted_credential_ref").eq("provider", "salla").eq("external_store_id", storeId).eq("status", "connected").maybeSingle();
+    const { data: integration, error } = await supabase.from("platform_integrations").select("id,merchant_id,external_store_id,encrypted_credential_ref,status,connected_at").eq("provider", "salla").eq("external_store_id", storeId).in("status", ["connected", "pending", "error"]).maybeSingle();
     if (error) throw error;
     if (!integration?.merchant_id || !integration.encrypted_credential_ref) return 0;
     const products = await syncAllSallaProducts({
@@ -281,8 +270,15 @@ export async function refreshSallaStore(storeId: string): Promise<number> {
         if (credentialError) throw credentialError;
       },
     });
-    await replaceSallaProducts(integration.merchant_id, products);
-    const { error: updateError } = await supabase.from("platform_integrations").update({ last_synced_at: new Date().toISOString() }).eq("id", integration.id).eq("merchant_id", integration.merchant_id);
+    await replaceCommerceProducts(integration.merchant_id, "salla", products);
+    const finishedAt = new Date().toISOString();
+    const { error: updateError } = await supabase.from("platform_integrations").update({
+      last_synced_at: finishedAt,
+      status: "connected",
+      connected_at: integration.connected_at || finishedAt,
+      metadata_json: { note: "Connected through Salla Easy Mode; catalog synchronized." },
+      updated_at: finishedAt,
+    }).eq("id", integration.id).eq("merchant_id", integration.merchant_id);
     if (updateError) throw updateError;
     return products.length;
   }

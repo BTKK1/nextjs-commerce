@@ -51,6 +51,7 @@ const loader = String.raw`(() => {
   let currentProduct = productRef();
   let canonicalProductName = "";
   let productConfigReady = false;
+  let productConfigFailure = "temporary";
   const displayedProductName = () => canonicalProductName || productName();
   let conversationId = null;
   let preferences = {
@@ -84,7 +85,8 @@ const loader = String.raw`(() => {
       open: "اسأل نبيه",
       welcome: "هلا! أنا نبيه. اسألني عن هذا المنتج وبساعدك تقرر إذا يناسبك.",
       noProduct: "افتح أي منتج وبعدها اسأل نبيه عنه.",
-      catalogUnavailable: "نبيه موجود، لكن ربط منتجات المتجر ما اكتمل للحين. صاحب المتجر يحتاج يكمل الربط من لوحة نبيه.",
+      productUnavailable: "تفاصيل هذا المنتج ما وصلت لنبيه للحين. جرّب بعد لحظات، وإذا استمرت المشكلة يحتاج صاحب المتجر يعمل مزامنة للمنتجات.",
+      catalogTemporarilyUnavailable: "تعذر تحميل تفاصيل المنتج الآن. جرّب مرة ثانية بعد شوي.",
       storeProducts: "منتجات المتجر",
       placeholder: "اسأل نبيه...",
       send: "إرسال",
@@ -101,7 +103,8 @@ const loader = String.raw`(() => {
       open: "Ask Nbeh",
       welcome: "Hi! I’m Nbeh. Ask me about this product and I’ll help you decide if it suits you.",
       noProduct: "Open any product, then ask Nbeh about it.",
-      catalogUnavailable: "Nbeh is installed, but this store's product catalog is not connected yet. The store owner needs to finish setup in the Nbeh dashboard.",
+      productUnavailable: "Nbeh does not have this product's latest details yet. Try again shortly; if it continues, the store owner should sync products.",
+      catalogTemporarilyUnavailable: "Nbeh could not load this product's details right now. Please try again shortly.",
       storeProducts: "the store’s products",
       placeholder: "Ask Nbeh...",
       send: "Send",
@@ -345,24 +348,32 @@ const loader = String.raw`(() => {
       scheduleAutoPopup();
     }
   };
-  const loadProductConfig = async () => {
+  const loadProductConfig = async (attempts = 1) => {
     productConfigReady = false;
-    try {
-      const response = await fetch(origin + "/api/widget/config?merchantKey=" + encodeURIComponent(merchantKey) + "&productRef=" + encodeURIComponent(currentProduct), { cache: "no-store" });
-      if (!response.ok) return false;
-      const payload = await response.json();
-      productConfigReady = Boolean(payload.product?.ref);
-      canonicalProductName = clean(lang === "ar" ? (payload.product?.arabicName || payload.product?.name) : payload.product?.name);
-      const onboarding = messages.querySelector(".onboarding");
-      if (onboarding && !messages.querySelector(".user")) {
-        onboarding.dataset.content = onboardingText();
-        onboarding.textContent = onboardingText();
+    productConfigFailure = "temporary";
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        const response = await fetch(origin + "/api/widget/config?merchantKey=" + encodeURIComponent(merchantKey) + "&productRef=" + encodeURIComponent(currentProduct), { cache: "no-store" });
+        if (!response.ok) {
+          productConfigFailure = response.status === 404 ? "product_missing" : "temporary";
+        } else {
+          const payload = await response.json();
+          productConfigReady = Boolean(payload.product?.ref);
+          canonicalProductName = clean(lang === "ar" ? (payload.product?.arabicName || payload.product?.name) : payload.product?.name);
+          const onboarding = messages.querySelector(".onboarding");
+          if (onboarding && !messages.querySelector(".user")) {
+            onboarding.dataset.content = onboardingText();
+            onboarding.textContent = onboardingText();
+          }
+          renderContext();
+          return productConfigReady;
+        }
+      } catch {
+        productConfigFailure = "temporary";
       }
-      renderContext();
-      return productConfigReady;
-    } catch {
-      return false;
+      if (attempt + 1 < attempts) await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
     }
+    return false;
   };
 
   launch.addEventListener("click", () => openPanel(false));
@@ -413,8 +424,8 @@ const loader = String.raw`(() => {
       input.focus();
       return;
     }
-    if (!productConfigReady && !(await loadProductConfig())) {
-      const guidance = addMessage("assistant", t().catalogUnavailable, "", true);
+    if (!productConfigReady && !(await loadProductConfig(2))) {
+      const guidance = addMessage("assistant", productConfigFailure === "product_missing" ? t().productUnavailable : t().catalogTemporarilyUnavailable, "", true);
       guidance.setAttribute("aria-live", "polite");
       input.focus();
       return;

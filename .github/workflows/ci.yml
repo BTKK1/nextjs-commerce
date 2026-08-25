@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  schedule:
+    - cron: "43 1 * * *"
   workflow_dispatch:
     inputs:
       live_agent_suite:
@@ -111,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     needs: verify
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.live_agent_suite) }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_agent_suite) }}
     env:
       AGENT_MODE: live
       NEXT_PUBLIC_DEMO_MODE: "true"
@@ -151,7 +153,6 @@ jobs:
 
       - name: Continuous OX Alpha smoke
         id: ox_alpha_smoke
-        continue-on-error: true
         run: pnpm run test:agent:continuous
 
       - name: Record OX Alpha monitor result
@@ -165,7 +166,7 @@ jobs:
           fi
 
       - name: Full live OX Alpha agent quality suite
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.live_agent_suite }}
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_agent_suite) }}
         run: pnpm run test:agent:live
 
       - name: Upload live agent quality report
@@ -183,12 +184,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: verify
-    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     environment: production
     env:
       EXPECTED_GIT_SHA: ${{ github.sha }}
       PRODUCTION_SMOKE_URL: https://www.nbeh.io
-      PRODUCTION_COMMERCE_LIVE_CHAT: ${{ github.event_name == 'workflow_dispatch' && inputs.live_commerce_chat && 'true' || 'false' }}
+      PRODUCTION_COMMERCE_LIVE_CHAT: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_commerce_chat)) && 'true' || 'false' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

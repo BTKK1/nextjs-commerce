@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { getCatalogProvider } from "@/lib/catalog";
-import { catalogProductToSupabaseRow } from "@/lib/catalog/supabase-mapper";
+import { replaceCommerceProducts } from "@/lib/integrations/catalog-replacement";
 import type { CatalogProviderConnection } from "@/lib/catalog/provider";
 import { ensureZidProductWebhooks, exchangeZidAuthorizationCode, getZidStoreProfile } from "@/lib/integrations/zid-client";
 import { sealZidCredentials } from "@/lib/integrations/zid-credentials";
@@ -44,31 +44,6 @@ export async function syncAllZidProducts(connection: CatalogProviderConnection):
     cursor = result.cursor;
   }
   throw new Error("Zid catalog exceeded the supported 100-page synchronization limit.");
-}
-
-async function replaceZidProducts(merchantId: string, products: CatalogProduct[]) {
-  const supabase = createServiceClient();
-  const { data: existing, error: existingError } = await supabase
-    .from("products")
-    .select("id,external_id")
-    .eq("merchant_id", merchantId)
-    .eq("platform", "zid");
-  if (existingError) throw existingError;
-  if (products.length) {
-    const { error: productError } = await supabase.from("products").upsert(
-      products.map((product) => catalogProductToSupabaseRow(product, merchantId, "zid")),
-      { onConflict: "merchant_id,platform,slug" },
-    );
-    if (productError) throw productError;
-  }
-  const currentIds = new Set(products.map((product) => product.externalId).filter(Boolean));
-  const staleIds = (existing ?? [])
-    .filter((row) => row.external_id && !currentIds.has(row.external_id))
-    .map((row) => row.id);
-  for (let index = 0; index < staleIds.length; index += 100) {
-    const { error: deleteError } = await supabase.from("products").delete().eq("merchant_id", merchantId).eq("platform", "zid").in("id", staleIds.slice(index, index + 100));
-    if (deleteError) throw deleteError;
-  }
 }
 
 export interface ZidInstallationResult {
@@ -188,7 +163,7 @@ export async function installZidStore(code: string, oauthStateId?: string | null
         if (error) throw error;
       },
     });
-    await replaceZidProducts(merchantId, products);
+    await replaceCommerceProducts(merchantId, "zid", products);
     const { error: syncUpdateError } = await supabase.from("platform_integrations").update({ last_synced_at: new Date().toISOString(), status: "connected", updated_at: new Date().toISOString() }).eq("id", integrationId).eq("merchant_id", merchantId);
     if (syncUpdateError) throw syncUpdateError;
     return { merchantId, integrationId, storeId: profile.storeId, productsImported: products.length };
@@ -205,10 +180,10 @@ export async function installZidStore(code: string, oauthStateId?: string | null
 export async function refreshZidStore(storeId: string): Promise<number> {
   const supabase = createServiceClient();
   const { data: integration, error } = await supabase.from("platform_integrations")
-    .select("id,merchant_id,external_store_id,encrypted_credential_ref")
+    .select("id,merchant_id,external_store_id,encrypted_credential_ref,status,connected_at")
     .eq("provider", "zid")
     .eq("external_store_id", storeId)
-    .eq("status", "connected")
+    .in("status", ["connected", "pending", "error"])
     .maybeSingle();
   if (error) throw error;
   if (!integration?.merchant_id || !integration.encrypted_credential_ref) return 0;
@@ -222,7 +197,15 @@ export async function refreshZidStore(storeId: string): Promise<number> {
       if (updateError) throw updateError;
     },
   });
-  await replaceZidProducts(integration.merchant_id, products);
-  await supabase.from("platform_integrations").update({ last_synced_at: new Date().toISOString() }).eq("id", integration.id).eq("merchant_id", integration.merchant_id);
+  await replaceCommerceProducts(integration.merchant_id, "zid", products);
+  const finishedAt = new Date().toISOString();
+  const { error: updateError } = await supabase.from("platform_integrations").update({
+    last_synced_at: finishedAt,
+    status: "connected",
+    connected_at: integration.connected_at || finishedAt,
+    metadata_json: { note: "Connected through Zid OAuth 2.0; catalog synchronized." },
+    updated_at: finishedAt,
+  }).eq("id", integration.id).eq("merchant_id", integration.merchant_id);
+  if (updateError) throw updateError;
   return products.length;
 }

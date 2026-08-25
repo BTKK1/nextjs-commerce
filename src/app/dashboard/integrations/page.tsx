@@ -30,6 +30,10 @@ function pendingHelp(provider: string) {
     : "Connect Zid securely, approve product access, then return here. Nbeh keeps each store’s products and agent isolated.";
 }
 
+function recoveryHelp(provider: string) {
+  return `${provider === "salla" ? "Salla" : "Zid"} is still installed. Repair checks the saved authorization and refreshes every product; reconnect only if that check says authorization expired.`;
+}
+
 export default async function IntegrationsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const identity = await requireDashboardUser();
   const canConnect = canManageIntegrations(identity.role);
@@ -81,14 +85,14 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
             </dl>
             {integration.provider !== "demo_catalog" && canConnect ? (
               <div className="mt-5 space-y-2">
-                {integration.status === "connected" ? (
-                  <IntegrationSyncButton provider={integration.provider} />
+                {integration.status === "connected" || (["pending", "error"].includes(integration.status) && integration.externalStoreId) ? (
+                  <IntegrationSyncButton provider={integration.provider} recovering={integration.status !== "connected"} />
                 ) : integration.provider === "salla" ? (
                   <a href={process.env.SALLA_INSTALL_URL || "https://s.salla.sa/apps/install/1132747795"} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center justify-center rounded-md bg-ink px-3 py-2 text-xs font-semibold text-white">Install Nbeh on Salla</a>
                 ) : (
                   <form action={`/api/integrations/${integration.provider}/oauth/start`} method="post"><DashboardActionButton label="Connect Zid" pendingLabel="Opening secure connection…" className="rounded-md bg-ink px-3 py-2 text-xs font-semibold text-white" /></form>
                 )}
-                <p className="text-xs leading-5 text-stone-500">{integration.status === "connected" ? connectedHelp(integration.provider) : pendingHelp(integration.provider)}</p>
+                <p className="text-xs leading-5 text-stone-500">{integration.status === "connected" ? connectedHelp(integration.provider) : (["pending", "error"].includes(integration.status) && integration.externalStoreId) ? recoveryHelp(integration.provider) : pendingHelp(integration.provider)}</p>
               </div>
             ) : integration.provider !== "demo_catalog" ? <p className="mt-5 text-xs leading-5 text-stone-500">Connection controls require an owner or integration administrator.</p> : null}
           </article>

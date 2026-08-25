@@ -1,4 +1,4 @@
-import { Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import Link from "next/link";
 import { ExternalLink, Store } from "lucide-react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
@@ -7,8 +7,14 @@ import { requireDashboardUser } from "@/lib/auth/require-user";
 import { getDashboardLocale } from "@/lib/dashboard/i18n";
 import { translateDashboardText } from "@/lib/dashboard/translations";
 
-const dashboardFont = Space_Grotesk({
-  subsets: ["latin"],
+const dashboardFont = localFont({
+  src: [
+    { path: "../fonts/space-grotesk-300.ttf", weight: "300", style: "normal" },
+    { path: "../fonts/space-grotesk-400.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/space-grotesk-500.ttf", weight: "500", style: "normal" },
+    { path: "../fonts/space-grotesk-600.ttf", weight: "600", style: "normal" },
+    { path: "../fonts/space-grotesk-700.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-nbeh-dashboard",
   display: "swap",
 });

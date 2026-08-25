@@ -1,0 +1,27 @@
+name: Catalog reconciliation
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nbeh-catalog-reconciliation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Reconcile the oldest Salla and Zid catalogs
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --max-time 360 --retry 2 --retry-all-errors \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://www.nbeh.io/api/cron/catalog-reconcile

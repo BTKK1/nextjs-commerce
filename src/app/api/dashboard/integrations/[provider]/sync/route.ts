@@ -10,6 +10,7 @@ import type { PlatformProvider } from "@/lib/types";
 import { createServiceClient } from "@/utils/supabase/server";
 import { syncAllSallaProducts } from "@/lib/integrations/salla-installation";
 import { syncAllZidProducts } from "@/lib/integrations/zid-installation";
+import { replaceCommerceProducts } from "@/lib/integrations/catalog-replacement";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export async function POST(request: Request, context: { params: Promise<{ provid
   const supabase = createServiceClient();
   const { data: integration } = await supabase.from("platform_integrations").select("*").eq("merchant_id", identity.merchantId).eq("provider", databaseProvider).maybeSingle();
   if (!integration) return NextResponse.json({ error: "Integration record not found" }, { status: 404 });
-  if (provider !== "demo_catalog" && integration.status !== "connected") {
+  if (provider !== "demo_catalog" && !["connected", "pending", "error"].includes(integration.status)) {
     return NextResponse.json({ error: `${provider} is not connected; complete provider approval and OAuth first` }, { status: 409 });
   }
   if (provider !== "demo_catalog" && (!integration.external_store_id || !integration.encrypted_credential_ref)) {
@@ -54,14 +55,24 @@ export async function POST(request: Request, context: { params: Promise<{ provid
       : provider === "zid"
         ? await syncAllZidProducts(connection)
         : (await getCatalogProvider(provider).syncCatalog(connection)).products;
-    if (products.length) {
+    if (provider === "salla" || provider === "zid") {
+      await replaceCommerceProducts(identity.merchantId, provider, products);
+    } else if (products.length) {
       const { error: productError } = await supabase.from("products").upsert(products.map((product) => catalogProductToSupabaseRow(product, identity.merchantId, provider)), { onConflict: "merchant_id,platform,slug" });
       if (productError) throw new Error(`Catalog normalization failed: ${productError.message}`);
     }
     const finishedAt = new Date().toISOString();
     const { error: finishError } = await supabase.from("sync_jobs").update({ status: "success", finished_at: finishedAt, records_processed: products.length, cursor: null, metadata_json: { complete: true } }).eq("id", jobId).eq("merchant_id", identity.merchantId);
     if (finishError) throw new Error(`Sync job completion failed: ${finishError.message}`);
-    const { error: integrationError } = await supabase.from("platform_integrations").update({ last_synced_at: finishedAt }).eq("id", integration.id).eq("merchant_id", identity.merchantId);
+    const { error: integrationError } = await supabase.from("platform_integrations").update({
+      last_synced_at: finishedAt,
+      ...(provider !== "demo_catalog" ? {
+        status: "connected",
+        connected_at: integration.connected_at || finishedAt,
+        metadata_json: { note: `${provider === "salla" ? "Salla" : "Zid"} connection verified; full catalog synchronized.` },
+      } : {}),
+      updated_at: finishedAt,
+    }).eq("id", integration.id).eq("merchant_id", identity.merchantId);
     if (integrationError) throw new Error(`Integration timestamp update failed: ${integrationError.message}`);
     const { error: auditError } = await supabase.rpc("record_integration_sync_audit", {
       target_merchant_id: identity.merchantId,
@@ -76,7 +87,15 @@ export async function POST(request: Request, context: { params: Promise<{ provid
     return NextResponse.json({ jobId, status: "success", recordsProcessed: products.length });
   } catch (error) {
     const internalMessage = error instanceof Error ? error.message.slice(0, 240) : "Catalog sync failed";
-    await supabase.from("sync_jobs").update({ status: "failed", finished_at: new Date().toISOString(), error: internalMessage }).eq("id", jobId).eq("merchant_id", identity.merchantId);
+    const failedAt = new Date().toISOString();
+    await supabase.from("sync_jobs").update({ status: "failed", finished_at: failedAt, error: internalMessage }).eq("id", jobId).eq("merchant_id", identity.merchantId);
+    if (provider !== "demo_catalog") {
+      await supabase.from("platform_integrations").update({
+        status: "error",
+        metadata_json: { note: `${provider === "salla" ? "Salla" : "Zid"} remains installed, but its latest catalog refresh failed. Retry sync; reconnect only if retry says authorization is required.` },
+        updated_at: failedAt,
+      }).eq("id", integration.id).eq("merchant_id", identity.merchantId);
+    }
     await supabase.rpc("record_integration_sync_audit", {
       target_merchant_id: identity.merchantId,
       target_integration_id: integration.id,

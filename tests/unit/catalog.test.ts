@@ -47,6 +47,7 @@ describe("demo catalog provider", () => {
     expect(getCatalogProvider("salla").isConnected).toBe(false);
     expect(getCatalogProvider("zid").isConnected).toBe(false);
     expect(getCatalogProvider("salla").manifest.requiredScopes).toContain("products.read");
+    expect(getCatalogProvider("salla").manifest.requiredScopes).toContain("offline_access");
     expect(getCatalogProvider("zid").manifest.supportsWebhooks).toBe(true);
     expect(getCatalogProvider("zid").manifest.requiredScopes).toContain("third_js_write");
   });

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import { POST } from "@/app/api/agent/chat/route";
 import { demoCatalogProvider } from "@/lib/catalog";
 import { evaluateAgentResponse } from "@/lib/agent/evaluator";
@@ -33,6 +34,8 @@ async function askAgent(input: {
 describe("agent response evaluation", () => {
   beforeEach(() => {
     vi.stubEnv("OPENROUTER_API_KEY", "test-openrouter-key");
+    vi.stubEnv("OPENROUTER_ENFORCE_KEY_SHA256", "true");
+    vi.stubEnv("OPENROUTER_KEY_SHA256", createHash("sha256").update("test-openrouter-key").digest("hex"));
     process.env.AGENT_MODE = "live";
     process.env.DEMO_PERSISTENCE = "memory";
     process.env.SUPABASE_AGENT_ENABLED = "false";
