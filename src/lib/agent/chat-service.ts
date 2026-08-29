@@ -207,7 +207,6 @@ async function loadConversationHistory(conversationId: string | undefined, merch
 const CONFIGURABLE_FALLBACK_REASONS = new Set([
   "low_confidence",
   "missing_catalog_field",
-  "model_error",
 ]);
 
 function configuredFallbackText(

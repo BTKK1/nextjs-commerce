@@ -12,7 +12,7 @@ const environment = {
   DATA_BACKEND: process.env.DATA_BACKEND || "local",
   SUPABASE_AGENT_ENABLED: process.env.SUPABASE_AGENT_ENABLED || "false",
   DEMO_DATA_FILE: process.env.DEMO_DATA_FILE || join(tmpdir(), `nbeh-playwright-${process.pid}.json`),
-  SALES_AGENT_MODEL: process.env.CONTINUOUS_TEST_MODEL || "stealth/ox-alpha",
+  SALES_AGENT_MODEL: process.env.CONTINUOUS_TEST_MODEL || "z-ai/glm-5.3-flash",
   SALES_AGENT_DISABLE_FALLBACKS: "true",
   PRODUCT_AGENT_DISABLE_FALLBACKS: "true",
   NEXTAUTH_URL: process.env.NEXTAUTH_URL || `http://${host}:${port}`,

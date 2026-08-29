@@ -44,7 +44,7 @@ await checked("global agent configuration", supabase.from("platform_agent_config
   system_prompt: defaultPrompt,
   developer_prompt: defaultDeveloperPrompt,
   model_provider: "openrouter",
-  model_name: process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-lite",
+  model_name: process.env.OPENROUTER_MODEL || "z-ai/glm-5.3-flash",
   updated_at: seedTime,
   updated_by: "supabase-seed",
 }, { onConflict: "singleton_key", ignoreDuplicates: true }));
@@ -127,7 +127,7 @@ await checked("dashboard settings", supabase.from("dashboard_settings").upsert({
 
 await checked("agent config", supabase.from("agent_configs").upsert({
   id: configId, merchant_id: merchantId, name: "Nbeh — Maison Vert", status: "active",
-  model_provider: "openrouter", model_name: process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-lite",
+  model_provider: "openrouter", model_name: process.env.OPENROUTER_MODEL || "z-ai/glm-5.3-flash",
   temperature: 0.25, max_tokens: 420, response_language_policy: "match_shopper",
   tone_preset: "neutral_saudi", system_prompt: defaultPrompt,
   developer_prompt: defaultDeveloperPrompt,
@@ -206,7 +206,7 @@ await checked("conversation", supabase.from("conversations").upsert({
 }, { onConflict: "id" }));
 await checked("messages", supabase.from("messages").upsert([
   { id: userMessageId, conversation_id: conversationId, merchant_id: merchantId, product_id: tote.id, sender_type: "visitor", content: "Will this tote fit a laptop and daily essentials?", language: "en", model: null, provider: null, token_usage: {}, safety_flags: {}, fallback_reason: null, metadata_json: {}, created_at: seedTime },
-  { id: assistantMessageId, conversation_id: conversationId, merchant_id: merchantId, product_id: tote.id, sender_type: "assistant", content: "The product information says it fits up to a 14-inch laptop, plus everyday essentials.", language: "en", model: process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-lite", provider: "openrouter", token_usage: {}, safety_flags: {}, fallback_reason: null, metadata_json: { quality_rating: 5 }, created_at: seedTime },
+  { id: assistantMessageId, conversation_id: conversationId, merchant_id: merchantId, product_id: tote.id, sender_type: "assistant", content: "The product information says it fits up to a 14-inch laptop, plus everyday essentials.", language: "en", model: process.env.OPENROUTER_MODEL || "z-ai/glm-5.3-flash", provider: "openrouter", token_usage: {}, safety_flags: {}, fallback_reason: null, metadata_json: { quality_rating: 5 }, created_at: seedTime },
 ], { onConflict: "id" }));
 
 const insightId = stableUuid("insight:seed");

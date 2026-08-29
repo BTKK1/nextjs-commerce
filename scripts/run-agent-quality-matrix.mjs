@@ -43,10 +43,10 @@ const env = {
   AGENT_MODE: mode,
   DEMO_PERSISTENCE: "memory",
   SUPABASE_AGENT_ENABLED: "false",
-  SALES_AGENT_MODEL: process.env.CONTINUOUS_TEST_MODEL || "stealth/ox-alpha",
+  SALES_AGENT_MODEL: process.env.CONTINUOUS_TEST_MODEL || "z-ai/glm-5.3-flash",
   SALES_AGENT_DISABLE_FALLBACKS: "true",
   PRODUCT_AGENT_DISABLE_FALLBACKS: "true",
-  OPENROUTER_MODEL: process.env.CONTINUOUS_TEST_MODEL || "stealth/ox-alpha",
+  OPENROUTER_MODEL: process.env.CONTINUOUS_TEST_MODEL || "z-ai/glm-5.3-flash",
 };
 
 const command = process.platform === "win32" ? "cmd.exe" : "pnpm";

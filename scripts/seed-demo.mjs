@@ -14,7 +14,7 @@ const tingPrimaryModel =
   process.env.SALES_AGENT_MODEL ||
   process.env.PRODUCT_AGENT_MODEL ||
   process.env.OPENROUTER_MODEL ||
-  "google/gemini-2.5-flash-lite";
+  "z-ai/glm-5.3-flash";
 const products = catalog.products;
 const product = (slug) => {
   const found = products.find((item) => item.slug === slug);

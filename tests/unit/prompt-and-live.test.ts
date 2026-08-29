@@ -36,7 +36,7 @@ describe("prompt builder and live provider config", () => {
     vi.unstubAllEnvs();
   });
 
-  it("uses the same Ting sales agent model route order", () => {
+  it("uses GLM 5.3 Flash as the default primary route", () => {
     const previous = {
       sales: process.env.SALES_AGENT_MODEL,
       salesFallback: process.env.SALES_AGENT_FALLBACK_MODEL,
@@ -53,7 +53,7 @@ describe("prompt builder and live provider config", () => {
     delete process.env.SALES_AGENT_DISABLE_FALLBACKS;
 
     expect(getModelConfig().routes).toEqual([
-      { provider: "openrouter", model: "google/gemini-2.5-flash-lite" },
+      { provider: "openrouter", model: "z-ai/glm-5.3-flash" },
       { provider: "openrouter", model: "qwen/qwen3-235b-a22b-2507" },
       { provider: "deepseek-direct", model: "deepseek-chat" },
     ]);
@@ -67,11 +67,20 @@ describe("prompt builder and live provider config", () => {
   });
 
   it("can lock continuous live testing to one OpenRouter model", () => {
+    vi.stubEnv("SALES_AGENT_MODEL", "z-ai/glm-5.3-flash");
+    vi.stubEnv("SALES_AGENT_DISABLE_FALLBACKS", "true");
+
+    expect(getModelConfig().routes).toEqual([
+      { provider: "openrouter", model: "z-ai/glm-5.3-flash" },
+    ]);
+  });
+
+  it("normalizes the retired OX Alpha alias to its official GLM route", () => {
     vi.stubEnv("SALES_AGENT_MODEL", "stealth/ox-alpha");
     vi.stubEnv("SALES_AGENT_DISABLE_FALLBACKS", "true");
 
     expect(getModelConfig().routes).toEqual([
-      { provider: "openrouter", model: "stealth/ox-alpha" },
+      { provider: "openrouter", model: "z-ai/glm-5.3-flash" },
     ]);
   });
 
@@ -95,7 +104,7 @@ describe("prompt builder and live provider config", () => {
   it("retries transient failures on the same locked model without using a fallback", async () => {
     const product = demoProducts[0];
     vi.stubEnv("OPENROUTER_API_KEY", "test-openrouter-key");
-    vi.stubEnv("SALES_AGENT_MODEL", "stealth/ox-alpha");
+    vi.stubEnv("SALES_AGENT_MODEL", "z-ai/glm-5.3-flash");
     vi.stubEnv("SALES_AGENT_DISABLE_FALLBACKS", "true");
     vi.stubEnv("PRODUCT_AGENT_SAME_ROUTE_RETRIES", "2");
     vi.stubEnv("PRODUCT_AGENT_RETRY_BASE_MS", "0");
@@ -113,11 +122,11 @@ describe("prompt builder and live provider config", () => {
     expect(answer.fallbackReason).toBeUndefined();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(answer.providerRoute).toContain("openrouter(rate_limited)->openrouter(ok)");
-    expect(answer.model).toBe("stealth/ox-alpha");
-    const oxRequest = JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body)) as {
+    expect(answer.model).toBe("z-ai/glm-5.3-flash");
+    const productionModelRequest = JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body)) as {
       reasoning?: { effort?: string; exclude?: boolean };
     };
-    expect(oxRequest.reasoning).toEqual({ effort: "low", exclude: true });
+    expect(productionModelRequest.reasoning).toEqual({ effort: "low", exclude: true });
   });
 
   it("includes current product context and only scoped related products", () => {
@@ -456,6 +465,22 @@ describe("prompt builder and live provider config", () => {
     expect(answer.text).toContain("هالمعلومة مو واضحة عندي حاليًا.");
     expect(answer.text).toContain("Atelier Wool Coat");
     expect(answer.text).not.toBe("هالمعلومة مو واضحة عندي حاليًا.");
+  });
+
+  it("does not mislabel a model outage as missing product knowledge", () => {
+    const config = {
+      guardrails: [{ fallback_response_ar: "معلومات المنتج غير موجودة." }],
+    } as RuntimeAgentConfig;
+    const answer = applyFallbackExperience(
+      { text: "ignored", fallbackReason: "model_error", confidence: 0.2, mode: "live", language: "ar" },
+      config,
+      [],
+      "ar",
+    );
+
+    expect(answer.text).toContain("خلل مؤقت");
+    expect(answer.text).toContain("معلومات المنتج محفوظة");
+    expect(answer.text).not.toContain("معلومات المنتج غير موجودة");
   });
 
   it("repairs a numerical compatibility mismatch into an explicit rejection", async () => {

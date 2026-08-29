@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       live_agent_suite:
-        description: "Run the real OX Alpha agent quality suite"
+        description: "Run the full live GLM 5.3 Flash agent quality suite"
         required: false
         default: false
         type: boolean
@@ -109,11 +109,11 @@ jobs:
           if-no-files-found: ignore
 
   live-agent-smoke:
-    name: Continuous OX Alpha agent quality
+    name: Continuous GLM 5.3 Flash agent quality
     runs-on: ubuntu-latest
     timeout-minutes: 35
     needs: verify
-    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_agent_suite) }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     env:
       AGENT_MODE: live
       NEXT_PUBLIC_DEMO_MODE: "true"
@@ -122,8 +122,8 @@ jobs:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_ENFORCE_KEY_SHA256: "true"
       OPENROUTER_KEY_SHA256: ${{ vars.OPENROUTER_KEY_SHA256 }}
-      CONTINUOUS_TEST_MODEL: stealth/ox-alpha
-      SALES_AGENT_MODEL: stealth/ox-alpha
+      CONTINUOUS_TEST_MODEL: z-ai/glm-5.3-flash
+      SALES_AGENT_MODEL: z-ai/glm-5.3-flash
       SALES_AGENT_DISABLE_FALLBACKS: "true"
       PRODUCT_AGENT_DISABLE_FALLBACKS: "true"
       PRODUCT_AGENT_TIMEOUT_MS: "120000"
@@ -147,25 +147,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify OX Alpha is the only configured route
+      - name: Verify GLM 5.3 Flash is the only configured route
         run: |
-          node --import ts-node/esm -e "import('./src/lib/ai/model-config.ts').then(({getModelConfig}) => { const config = getModelConfig(); const routes = config.routes; if (!config.credentialGuardEnabled) throw new Error('Saleh OpenRouter credential guard is disabled'); if (routes.length !== 1 || routes[0].provider !== 'openrouter' || routes[0].model !== 'stealth/ox-alpha') throw new Error('Continuous test model route is not locked to OX Alpha'); console.log('Saleh credential guard active; model route locked to OpenRouter:stealth/ox-alpha'); })"
+          node --import ts-node/esm -e "import('./src/lib/ai/model-config.ts').then(({getModelConfig}) => { const config = getModelConfig(); const routes = config.routes; if (!config.credentialGuardEnabled) throw new Error('Saleh OpenRouter credential guard is disabled'); if (routes.length !== 1 || routes[0].provider !== 'openrouter' || routes[0].model !== 'z-ai/glm-5.3-flash') throw new Error('Continuous test model route is not locked to GLM 5.3 Flash'); console.log('Saleh credential guard active; model route locked to OpenRouter:z-ai/glm-5.3-flash'); })"
 
-      - name: Continuous OX Alpha smoke
-        id: ox_alpha_smoke
+      - name: Continuous GLM 5.3 Flash smoke
+        id: production_model_smoke
         run: pnpm run test:agent:continuous
 
-      - name: Record OX Alpha monitor result
+      - name: Record production-model monitor result
         if: always()
         run: |
-          echo "### OX Alpha continuous monitor" >> "$GITHUB_STEP_SUMMARY"
-          echo "Result: ${{ steps.ox_alpha_smoke.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Configured route: OpenRouter stealth/ox-alpha only; model fallback disabled." >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ steps.ox_alpha_smoke.outcome }}" != "success" ]; then
-            echo "OX Alpha did not complete a live product-grounded response. Inspect the failed step for upstream timeout, rate-limit, authentication, or response-quality details." >> "$GITHUB_STEP_SUMMARY"
+          echo "### GLM 5.3 Flash continuous monitor" >> "$GITHUB_STEP_SUMMARY"
+          echo "Result: ${{ steps.production_model_smoke.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Configured route: OpenRouter z-ai/glm-5.3-flash only; model fallback disabled." >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.production_model_smoke.outcome }}" != "success" ]; then
+            echo "The production model did not complete a live product-grounded response. Inspect the failed step for upstream retirement, timeout, rate-limit, authentication, or response-quality details." >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Full live OX Alpha agent quality suite
+      - name: Full live GLM 5.3 Flash agent quality suite
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_agent_suite) }}
         run: pnpm run test:agent:live
 
@@ -183,7 +183,7 @@ jobs:
     name: Deploy verified commit to Vercel
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: verify
+    needs: [verify, live-agent-smoke]
     if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
     env:
       VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
@@ -196,9 +196,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Ensure Vercel Git integration
-        run: npx --yes vercel@54.9.1 git connect https://github.com/BTKK1/nextjs-commerce.git --non-interactive --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Deploy production
         id: deploy

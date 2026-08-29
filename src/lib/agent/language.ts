@@ -20,6 +20,10 @@ export function fallbackText(reason: string, language: "ar" | "en"): string {
       return "نبيه غير متاح حاليًا في هالمتجر. جرّب مرة ثانية لاحقًا.";
     }
 
+    if (reason === "model_error") {
+      return "صار خلل مؤقت في نبيه، لكن معلومات المنتج محفوظة. جرّب مرة ثانية بعد لحظات.";
+    }
+
     if (reason === "low_confidence") {
       return "وش حاب تعرف عن المنتج؟ اسألني عن المقاس، الخامة، السعر، أو استخدامه.";
     }
@@ -41,6 +45,10 @@ export function fallbackText(reason: string, language: "ar" | "en"): string {
 
   if (reason === "quota_exhausted") {
     return "Nbeh is temporarily unavailable in this store. Please try again later.";
+  }
+
+  if (reason === "model_error") {
+    return "Nbeh had a temporary service issue, but this product's information is still available. Please try again in a moment.";
   }
 
   if (reason === "low_confidence") {

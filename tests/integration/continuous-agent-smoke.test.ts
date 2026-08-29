@@ -6,12 +6,12 @@ import { getSellerKnowledgeForProduct } from "@/lib/knowledge/seller-knowledge";
 import { resetDatabaseForTests } from "@/lib/storage/json-store";
 import { createSeedDatabase } from "@/lib/storage/seed";
 
-const OX_ALPHA_MODEL = "stealth/ox-alpha";
+const PRODUCTION_MODEL = "z-ai/glm-5.3-flash";
 
-describe("continuous OX Alpha smoke", () => {
+describe("continuous GLM 5.3 Flash smoke", () => {
   beforeAll(() => {
     if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is required for continuous OX Alpha testing.");
+      throw new Error("OPENROUTER_API_KEY is required for continuous GLM 5.3 Flash testing.");
     }
     process.env.AGENT_MODE = "live";
     process.env.DEMO_PERSISTENCE = "memory";
@@ -19,9 +19,9 @@ describe("continuous OX Alpha smoke", () => {
     resetDatabaseForTests(createSeedDatabase());
   });
 
-  it("uses only OX Alpha for product-grounded Arabic guidance", async () => {
+  it("uses only GLM 5.3 Flash for product-grounded Arabic guidance", async () => {
     const config = getModelConfig();
-    expect(config.routes).toEqual([{ provider: "openrouter", model: OX_ALPHA_MODEL }]);
+    expect(config.routes).toEqual([{ provider: "openrouter", model: PRODUCTION_MODEL }]);
     expect(config.fallbacksEnabled).toBe(false);
 
     const slug = "everyday-leather-tote";
@@ -43,11 +43,11 @@ describe("continuous OX Alpha smoke", () => {
     );
 
     expect(answer.provider).toBe("openrouter");
-    expect(answer.model).toBe(OX_ALPHA_MODEL);
+    expect(answer.model).toBe(PRODUCTION_MODEL);
     expect(answer.providerRoute).not.toMatch(/gemini|qwen|deepseek/i);
     expect(
       answer.fallbackReason,
-      `OX Alpha failed: ${answer.errorCode ?? "unknown"} (${answer.errorMessage ?? "no provider message"}); route=${answer.providerRoute}`,
+      `GLM 5.3 Flash failed: ${answer.errorCode ?? "unknown"} (${answer.errorMessage ?? "no provider message"}); route=${answer.providerRoute}`,
     ).toBeUndefined();
     expect(answer.text).toContain("320");
     expect(answer.text).toMatch(/جلد|leather/i);

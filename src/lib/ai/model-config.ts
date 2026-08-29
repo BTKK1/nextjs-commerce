@@ -3,10 +3,12 @@ import type { AgentMode } from "@/lib/types";
 
 export type ProductAgentProvider = "openrouter" | "deepseek-direct";
 
-export const TING_SALES_AGENT_PRIMARY_MODEL = "google/gemini-2.5-flash-lite";
+export const NBEH_PRODUCTION_MODEL = "z-ai/glm-5.3-flash";
+export const TING_SALES_AGENT_PRIMARY_MODEL = NBEH_PRODUCTION_MODEL;
 export const TING_SALES_AGENT_FALLBACK_MODEL = "qwen/qwen3-235b-a22b-2507";
 export const TING_SALES_AGENT_FALLBACK2_MODEL = "deepseek-chat";
-export const FALLBACK_OPENROUTER_MODEL = TING_SALES_AGENT_PRIMARY_MODEL;
+export const RETIRED_NBEH_MODEL_ALIASES = new Set(["stealth/ox-alpha"]);
+export const FALLBACK_OPENROUTER_MODEL = NBEH_PRODUCTION_MODEL;
 export const PRODUCT_AGENT_PROMPT_VERSION = "product-agent-grounded-sales-v2";
 
 function modelFallbacksEnabled(): boolean {
@@ -55,11 +57,17 @@ function guardedOpenRouterApiKey(): { apiKey?: string; credentialGuardEnabled: b
 export function getModelConfig(): ModelConfig {
   const { apiKey, credentialGuardEnabled } = guardedOpenRouterApiKey();
   const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
-  const model =
+  const configuredModel =
     process.env.SALES_AGENT_MODEL ||
     process.env.PRODUCT_AGENT_MODEL ||
     process.env.OPENROUTER_MODEL ||
     FALLBACK_OPENROUTER_MODEL;
+  // OpenRouter retired the temporary OX Alpha alias after revealing that it
+  // was GLM-5.3 Flash. Normalize stale deployment variables to the official
+  // route so an old alias cannot take every storefront agent offline again.
+  const model = RETIRED_NBEH_MODEL_ALIASES.has(configuredModel)
+    ? NBEH_PRODUCTION_MODEL
+    : configuredModel;
   const fallbackModel =
     process.env.SALES_AGENT_FALLBACK_MODEL ||
     process.env.PRODUCT_AGENT_FALLBACK_MODEL ||

@@ -63,10 +63,10 @@ export function baseHandoffEnv(extra = {}) {
     DATA_BACKEND: extra.DATA_BACKEND ?? process.env.DATA_BACKEND ?? "supabase",
     NEXTAUTH_SECRET: "handoff-local-secret",
     SUPABASE_AGENT_ENABLED: extra.SUPABASE_AGENT_ENABLED ?? process.env.SUPABASE_AGENT_ENABLED ?? "true",
-    SALES_AGENT_MODEL: process.env.CONTINUOUS_TEST_MODEL || "stealth/ox-alpha",
+    SALES_AGENT_MODEL: process.env.CONTINUOUS_TEST_MODEL || "z-ai/glm-5.3-flash",
     SALES_AGENT_DISABLE_FALLBACKS: "true",
     PRODUCT_AGENT_DISABLE_FALLBACKS: "true",
-    OPENROUTER_MODEL: process.env.CONTINUOUS_TEST_MODEL || "stealth/ox-alpha",
+    OPENROUTER_MODEL: process.env.CONTINUOUS_TEST_MODEL || "z-ai/glm-5.3-flash",
     ...extra,
   };
 }

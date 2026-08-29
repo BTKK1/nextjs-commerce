@@ -1,9 +1,10 @@
 import "server-only";
 import { catalogProductToSupabaseRow } from "@/lib/catalog/supabase-mapper";
+import { assertCatalogSnapshotSafe, type CommerceCatalogPlatform } from "@/lib/integrations/catalog-safety";
 import type { CatalogProduct } from "@/lib/types";
 import { createServiceClient } from "@/utils/supabase/server";
 
-export type CommerceCatalogPlatform = "salla" | "zid";
+export type { CommerceCatalogPlatform } from "@/lib/integrations/catalog-safety";
 
 /**
  * Replaces one provider's catalog after a completed full synchronization.
@@ -21,6 +22,13 @@ export async function replaceCommerceProducts(
     .eq("merchant_id", merchantId)
     .eq("platform", platform);
   if (existingError) throw existingError;
+
+  // Marketplace APIs occasionally return a successful but empty snapshot
+  // while a token, replica, or catalog index is recovering. Never turn that
+  // transient response into a destructive storefront outage. Individual
+  // product deletions still arrive through provider webhooks, and a genuinely
+  // empty new store has no existing rows to preserve.
+  assertCatalogSnapshotSafe(platform, existing?.length ?? 0, products.length);
 
   if (products.length) {
     const { error: productError } = await supabase.from("products").upsert(

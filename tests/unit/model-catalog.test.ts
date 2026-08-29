@@ -8,7 +8,7 @@ describe("global model catalog", () => {
   });
 
   it("keeps models scoped to their provider", () => {
-    expect(isModelAvailableForProvider("openrouter", "stealth/ox-alpha")).toBe(true);
+    expect(isModelAvailableForProvider("openrouter", "z-ai/glm-5.3-flash")).toBe(true);
     expect(isModelAvailableForProvider("openrouter", "google/gemini-2.5-flash-lite")).toBe(true);
     expect(isModelAvailableForProvider("deepseek-direct", "google/gemini-2.5-flash-lite")).toBe(false);
     expect(isModelAvailableForProvider("deepseek-direct", "deepseek-chat")).toBe(true);
@@ -16,7 +16,7 @@ describe("global model catalog", () => {
   });
 
   it("provides a valid default whenever the provider changes", () => {
-    expect(defaultModelForProvider("openrouter")).toBe("stealth/ox-alpha");
+    expect(defaultModelForProvider("openrouter")).toBe("z-ai/glm-5.3-flash");
     expect(isModelAvailableForProvider("openrouter", defaultModelForProvider("openrouter"))).toBe(true);
     expect(isModelAvailableForProvider("deepseek-direct", defaultModelForProvider("deepseek-direct"))).toBe(true);
     expect(isProductAgentProvider("unsupported")).toBe(false);

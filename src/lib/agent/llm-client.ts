@@ -607,7 +607,7 @@ async function callProvider(
       headers,
       body: JSON.stringify({
         model: route.model,
-        ...(route.provider === "openrouter" && route.model === "stealth/ox-alpha"
+        ...(route.provider === "openrouter" && route.model === "z-ai/glm-5.3-flash"
           ? { reasoning: { effort: "low", exclude: true } }
           : {}),
         temperature: runtimeConfig?.temperature ?? 0.25,

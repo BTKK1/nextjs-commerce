@@ -59,7 +59,7 @@ export default defineConfig({
           DATA_BACKEND: "local",
           SUPABASE_AGENT_ENABLED: "false",
           DEMO_DATA_FILE: join(tmpdir(), `nbeh-playwright-${process.pid}.json`),
-          SALES_AGENT_MODEL: "google/gemini-2.5-flash-lite",
+          SALES_AGENT_MODEL: "z-ai/glm-5.3-flash",
           SALES_AGENT_FALLBACK_MODEL: "qwen/qwen3-235b-a22b-2507",
           SALES_AGENT_FALLBACK2_MODEL: "deepseek-chat",
           NEXTAUTH_URL: baseURL,

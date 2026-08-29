@@ -118,22 +118,6 @@ async function verifyPlatform(platform) {
   };
 }
 
-async function discoverCurrentZidProductRef(platform) {
-  const home = await fetch(platform.origin, { cache: "no-store", signal: AbortSignal.timeout(45_000) });
-  assert(home.ok, `Could not load the live Zid storefront (${home.status}).`);
-  const homeHtml = await home.text();
-  const productPath = homeHtml.match(/href=["']([^"']*\/products\/[^"'#?]+)["']/i)?.[1];
-  assert(productPath, "The live Zid storefront did not expose a current product link.");
-  const productUrl = new URL(productPath, platform.origin);
-  const page = await fetch(productUrl, { cache: "no-store", signal: AbortSignal.timeout(45_000) });
-  assert(page.ok, `Could not load a current Zid product page (${page.status}).`);
-  const html = await page.text();
-  const productRef = html.match(/id=["']product-id["'][\s\S]{0,240}?value=["']([a-zA-Z0-9_-]{1,160})["']/i)?.[1]
-    || html.match(/name=["']product_id["'][\s\S]{0,240}?value=["']([a-zA-Z0-9_-]{1,160})["']/i)?.[1];
-  assert(productRef, "The current Zid product page did not expose its product identity.");
-  return productRef;
-}
-
 async function main() {
   const health = await waitForExpectedDeployment();
   assert(health.dataBackend === "supabase", `Production data backend is ${health.dataBackend}.`);
@@ -150,8 +134,13 @@ async function main() {
     `A production commerce runtime is degraded${degradedProviders.length ? `: ${degradedProviders.join(", ")}` : "."}`,
   );
 
-  const zid = platforms.find((platform) => platform.provider === "zid");
-  if (zid) zid.productRef = await discoverCurrentZidProductRef(zid);
+  for (const platform of platforms) {
+    const runtime = health.commerceRuntime?.find((item) => item?.provider === platform.provider);
+    assert(runtime?.storeId, `${platform.provider} health did not expose its installed store identity.`);
+    assert(runtime?.sampleProductRef, `${platform.provider} health did not expose a synchronized product reference.`);
+    platform.storeId = runtime.storeId;
+    platform.productRef = runtime.sampleProductRef;
+  }
 
   const [sallaLoader, zidLoader] = await Promise.all([request("/salla-widget.js"), request("/zid-widget.js")]);
   assert(sallaLoader.response.ok && zidLoader.response.ok, "A commerce widget loader is unavailable.");
@@ -159,6 +148,11 @@ async function main() {
 
   const results = [];
   for (const platform of platforms) results.push(await verifyPlatform(platform));
+
+  if (runLiveChat) {
+    const afterChat = await request("/api/agent/health");
+    assert(afterChat.payload?.modelRuntimeHealthy === true, `Production model runtime is degraded: ${afterChat.payload?.latestModelFailure || "unknown failure"}.`);
+  }
 
   console.log(JSON.stringify({ status: "passed", baseUrl, buildId: health.buildId, liveChat: runLiveChat, platforms: results }, null, 2));
 }

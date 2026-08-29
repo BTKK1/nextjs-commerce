@@ -6,7 +6,7 @@ const tingPrimaryModel =
   process.env.SALES_AGENT_MODEL ||
   process.env.PRODUCT_AGENT_MODEL ||
   process.env.OPENROUTER_MODEL ||
-  "google/gemini-2.5-flash-lite";
+  "z-ai/glm-5.3-flash";
 const seedAgentMode = "live";
 
 function product(slug: string): DemoProduct {
